@@ -1,55 +1,84 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Prompt 產生器 - Prompt構築與領域展開</title>
+    <title>AI Prompt Generator - Smart Prompt Workshop</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Noto+Sans+TC:wght@300;400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap"
+        rel="stylesheet">
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
+            font-family: 'Inter', 'Noto Sans TC', 'Noto Sans SC', sans-serif;
             background-color: #0f172a;
             overflow-x: hidden;
         }
+
         /* 背景漸層 */
         .bg-hero {
-            background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.9)), 
-                        url('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=2000');
+            background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.9)),
+                url('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=2000');
             background-size: cover;
             background-position: center;
         }
+
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.3s ease;
         }
+
         .glass-card:hover {
             background: rgba(255, 255, 255, 0.07);
             border: 1px solid rgba(59, 130, 246, 0.3);
             transform: translateY(-5px);
         }
+
         .input-area {
             background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .helper-box {
             background: rgba(59, 130, 246, 0.05);
             border: 1px dashed rgba(59, 130, 246, 0.4);
         }
+
         .goal-helper-inline {
             background: rgba(234, 179, 8, 0.03);
             border-left: 3px solid rgba(234, 179, 8, 0.4);
         }
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .hidden { display: none !important; }
-        
-        textarea::placeholder { white-space: pre-line; line-height: 1.6; }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        textarea::placeholder {
+            white-space: pre-line;
+            line-height: 1.6;
+        }
 
         .node-active {
             box-shadow: 0 0 25px rgba(59, 130, 246, 0.6);
@@ -58,7 +87,7 @@
             color: white !important;
             transform: scale(1.1);
         }
-        
+
         .path-line {
             position: absolute;
             height: 2px;
@@ -78,33 +107,124 @@
             width: 0%;
             transition: width 0.7s ease;
             box-shadow: 0 0 20px rgba(234, 179, 8, 0.9);
-            display: none; 
+            display: none;
         }
 
-        @keyframes goldFlow { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .flowing { display: block; animation: goldFlow 1.5s linear infinite; }
+        @keyframes goldFlow {
+            0% {
+                background-position: 200% 0;
+            }
 
-        #bypass-curve-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-        .curve-path-base { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 2; stroke-dasharray: 6 4; }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .flowing {
+            display: block;
+            animation: goldFlow 1.5s linear infinite;
+        }
+
+        #bypass-curve-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .curve-path-base {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 2;
+            stroke-dasharray: 6 4;
+        }
+
         .curve-path-flow {
-            fill: none; stroke: url(#goldGradient); stroke-width: 3; stroke-dasharray: 10 300; stroke-linecap: round;
-            opacity: 0; transition: opacity 0.5s ease; filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.8));
+            fill: none;
+            stroke: url(#goldGradient);
+            stroke-width: 3;
+            stroke-dasharray: 10 300;
+            stroke-linecap: round;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.8));
         }
-        @keyframes curveFlow { from { stroke-dashoffset: 310; } to { stroke-dashoffset: 0; } }
-        .curve-active { opacity: 1; animation: curveFlow 2s linear infinite; }
 
-        .converge-active { animation: convergeAnimation 0.9s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
-        @keyframes convergeAnimation { 0% { transform: rotate(0deg) scale(1); opacity: 1; filter: blur(0px); } 100% { transform: rotate(1080deg) scale(0); opacity: 0; filter: blur(10px); } }
+        @keyframes curveFlow {
+            from {
+                stroke-dashoffset: 310;
+            }
 
-        .modal-active { display: flex !important; animation: fadeInModal 0.3s ease-out forwards; }
-        @keyframes fadeInModal { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(8px); } }
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
-        
-        .text-keep-all { word-break: keep-all; overflow-wrap: break-word; }
-        .text-normal-wrap { word-break: normal; overflow-wrap: anywhere; }
+        .curve-active {
+            opacity: 1;
+            animation: curveFlow 2s linear infinite;
+        }
+
+        .converge-active {
+            animation: convergeAnimation 0.9s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+        }
+
+        @keyframes convergeAnimation {
+            0% {
+                transform: rotate(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+
+            100% {
+                transform: rotate(1080deg) scale(0);
+                opacity: 0;
+                filter: blur(10px);
+            }
+        }
+
+        .modal-active {
+            display: flex !important;
+            animation: fadeInModal 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInModal {
+            from {
+                opacity: 0;
+                backdrop-filter: blur(0px);
+            }
+
+            to {
+                opacity: 1;
+                backdrop-filter: blur(8px);
+            }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+        }
+
+        .text-keep-all {
+            word-break: keep-all;
+            overflow-wrap: break-word;
+        }
+
+        .text-normal-wrap {
+            word-break: normal;
+            overflow-wrap: anywhere;
+        }
 
         .tree-node {
             background: rgba(255, 255, 255, 0.05);
@@ -118,11 +238,13 @@
             text-align: center;
             transition: all 0.3s ease;
         }
+
         .tree-node-highlight {
             border-color: rgba(59, 130, 246, 0.5);
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
             background: rgba(59, 130, 246, 0.05);
         }
+
         .tree-connector-svg {
             position: absolute;
             top: 0;
@@ -134,6 +256,7 @@
         }
     </style>
 </head>
+
 <body class="text-white min-h-screen">
 
     <div class="fixed inset-0 bg-hero z-0"></div>
@@ -141,46 +264,75 @@
     <!-- 頂部狀態列 (針對全域設定) -->
     <header id="global-header" class="fixed top-0 left-0 w-full z-40 px-6 py-4 hidden fade-in">
         <div class="max-w-6xl mx-auto flex justify-end items-center">
-            <button onclick="openSettingsModal()" class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold hover:bg-white/10 transition-all backdrop-blur-md">
-                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                全域環境設定
+            <button onclick="openSettingsModal()"
+                class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold hover:bg-white/10 transition-all backdrop-blur-md">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span data-i18n="settings_btn">Global Environment Settings</span>
             </button>
         </div>
     </header>
 
     <main class="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
-        
+
         <!-- Step 0: 首頁 -->
-        <section id="step-home" class="max-w-4xl text-center fade-in">
-            <div class="mb-6 inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-sm font-medium">
-                ✨ 智慧指令工作坊
+        <section id="step-home" class="max-w-4xl text-center fade-in relative">
+            <!-- 語言選擇器 -->
+            <div class="absolute top-0 right-0 z-50">
+                <select id="ui-lang-select" onchange="onUILangChange(this.value)"
+                    class="bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-gray-300 backdrop-blur-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer hover:bg-white/10"
+                    style="appearance: none; -webkit-appearance: none; padding-right: 2rem; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 01.753 1.659l-4.796 5.48a1 1 0 01-1.506 0z'/%3E%3C/svg%3E&quot;); background-repeat: no-repeat; background-position: right 0.75rem center;">
+                    <option value="en">🌐 English</option>
+                    <option value="zh-TW">🌐 繁體中文</option>
+                    <option value="zh-CN">🌐 简体中文</option>
+                </select>
+            </div>
+            <div class="mb-6 inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-sm font-medium"
+                data-i18n="badge_workshop">
+                ✨ Smart Prompt Workshop
             </div>
             <h1 class="text-5xl md:text-7xl font-bold mb-8 leading-tight">
-                AI Prompt <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">智能產生器</span>
+                <span data-i18n="title_prompt">AI Prompt </span><span
+                    class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
+                    data-i18n="title_generator">Smart Generator</span>
             </h1>
             <p class="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto text-keep-all">
-                <span class="inline-block">跳脫傳統指令的侷限</span><br class="hidden md:block">
-                <span class="inline-block">透過視覺化模組引導，</span><span class="inline-block">自由組合您的需求</span><br class="hidden md:block">
-                <span class="inline-block">產出最懂您的 AI 指令</span>
+                <span class="inline-block" data-i18n="subtitle_1">Break free from traditional prompt
+                    limitations</span><br class="hidden md:block">
+                <span class="inline-block" data-i18n="subtitle_2">Through visual module guidance, </span><span
+                    class="inline-block" data-i18n="subtitle_3">freely combine your needs</span><br
+                    class="hidden md:block">
+                <span class="inline-block" data-i18n="subtitle_4">to create AI prompts that truly understand you</span>
             </p>
-            
-            <div id="draft-alert" class="hidden mb-8 max-w-md mx-auto bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-center justify-between text-left">
+
+            <div id="draft-alert"
+                class="hidden mb-8 max-w-md mx-auto bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-center justify-between text-left">
                 <div>
-                    <h4 class="text-yellow-400 font-bold text-sm">發現未完成的草稿</h4>
-                    <p class="text-yellow-100/60 text-xs mt-1">您有上次尚未生成的指令進度</p>
+                    <h4 class="text-yellow-400 font-bold text-sm" data-i18n="draft_found">Unfinished Draft Found</h4>
+                    <p class="text-yellow-100/60 text-xs mt-1" data-i18n="draft_desc">You have an incomplete prompt from
+                        last session</p>
                 </div>
-                <button onclick="resumeDraft()" class="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-lg text-xs font-bold transition-all border border-yellow-500/30">
-                    恢復草稿
+                <button onclick="resumeDraft()"
+                    class="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-lg text-xs font-bold transition-all border border-yellow-500/30">
+                    <span data-i18n="btn_resume_draft">Resume Draft</span>
                 </button>
             </div>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button onclick="freshStart()" class="group relative px-10 py-4 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 w-full sm:w-auto">
-                    開始建構指令
+                <button onclick="freshStart()"
+                    class="group relative px-10 py-4 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 w-full sm:w-auto">
+                    <span data-i18n="btn_start">Start Building Prompt</span>
                     <span class="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
                 </button>
-                <button onclick="viewHistory()" class="px-10 py-4 bg-white/5 border border-white/10 rounded-full font-bold text-lg hover:bg-white/10 transition-all w-full sm:w-auto">
-                    查看歷史紀錄
+                <button onclick="viewHistory()"
+                    class="px-10 py-4 bg-white/5 border border-white/10 rounded-full font-bold text-lg hover:bg-white/10 transition-all w-full sm:w-auto"
+                    data-i18n="btn_history">
+                    View History
                 </button>
             </div>
         </section>
@@ -188,140 +340,220 @@
         <!-- Step 1: Prompt 構成架構 -->
         <section id="step-selection" class="max-w-6xl w-full hidden">
             <div class="text-center mb-16 fade-in">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">選擇指令模組</h2>
-                <p class="text-gray-400">填寫模組以啟動金色的能量傳輸連線</p>
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white" data-i18n="step1_title">Select Prompt Modules
+                </h2>
+                <p class="text-gray-400" data-i18n="step1_subtitle">Fill in modules to activate golden energy
+                    connections</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-                <button onclick="handleSelection('inherit', '有繼承工作的需求嗎？')" class="glass-card p-8 rounded-3xl text-left fade-in group">
-                    <div class="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-colors">
-                        <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <button onclick="handleSelection('inherit', t('card_inherit_title'))"
+                    class="glass-card p-8 rounded-3xl text-left fade-in group">
+                    <div
+                        class="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-colors">
+                        <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
                     </div>
                     <div class="flex justify-between items-start">
-                        <h3 class="text-2xl font-bold mb-4 text-white">繼承背景</h3>
-                        <span id="badge-inherit" class="hidden text-[10px] bg-blue-500/20 text-blue-300 px-2 py-1 rounded border border-blue-500/30 font-bold">已填寫</span>
+                        <h3 class="text-2xl font-bold mb-4 text-white" data-i18n="card_inherit_title">Inherited Context
+                        </h3>
+                        <span id="badge-inherit"
+                            class="hidden text-[10px] bg-blue-500/20 text-blue-300 px-2 py-1 rounded border border-blue-500/30 font-bold"
+                            data-i18n="badge_filled">Filled</span>
                     </div>
-                    <p class="text-gray-400 leading-relaxed text-sm">貼入過去的產出內容，讓 AI 了解目前進度</p>
+                    <p class="text-gray-400 leading-relaxed text-sm" data-i18n="card_inherit_desc">Paste previous output
+                        for AI to understand current progress</p>
                 </button>
 
-                <button onclick="handleSelection('goal', '我的目標是...')" class="glass-card p-8 rounded-3xl text-left fade-in group">
-                    <div class="w-14 h-14 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-500/30 transition-colors">
-                        <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <button onclick="handleSelection('goal', t('card_goal_title'))"
+                    class="glass-card p-8 rounded-3xl text-left fade-in group">
+                    <div
+                        class="w-14 h-14 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-500/30 transition-colors">
+                        <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
                     </div>
                     <div class="flex justify-between items-start">
-                        <h3 class="text-2xl font-bold mb-4 text-white">核心目標</h3>
-                        <span id="badge-goal" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded border border-emerald-500/30 font-bold">已填寫</span>
+                        <h3 class="text-2xl font-bold mb-4 text-white" data-i18n="card_goal_title">Core Goal</h3>
+                        <span id="badge-goal"
+                            class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded border border-emerald-500/30 font-bold"
+                            data-i18n="badge_filled">Filled</span>
                     </div>
-                    <p class="text-gray-400 leading-relaxed text-sm">設定期望達成的最終結果與特定限制</p>
+                    <p class="text-gray-400 leading-relaxed text-sm" data-i18n="card_goal_desc">Set expected outcomes
+                        and specific constraints</p>
                 </button>
 
-                <button onclick="handleSelection('next', '接下來我想做的事')" class="glass-card p-8 rounded-3xl text-left fade-in group">
-                    <div class="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-colors">
-                        <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <button onclick="handleSelection('next', t('card_next_title'))"
+                    class="glass-card p-8 rounded-3xl text-left fade-in group">
+                    <div
+                        class="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-colors">
+                        <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
                     </div>
                     <div class="flex justify-between items-start">
-                        <h3 class="text-2xl font-bold mb-4 text-white">下一步計畫</h3>
-                        <span id="badge-next" class="hidden text-[10px] bg-purple-500/20 text-purple-300 px-2 py-1 rounded border border-purple-500/30 font-bold">已填寫</span>
+                        <h3 class="text-2xl font-bold mb-4 text-white" data-i18n="card_next_title">Next Steps</h3>
+                        <span id="badge-next"
+                            class="hidden text-[10px] bg-purple-500/20 text-purple-300 px-2 py-1 rounded border border-purple-500/30 font-bold"
+                            data-i18n="badge_filled">Filled</span>
                     </div>
-                    <p class="text-gray-400 leading-relaxed text-sm">明確指示 AI 接下來應該執行的具體動作</p>
+                    <p class="text-gray-400 leading-relaxed text-sm" data-i18n="card_next_desc">Specify concrete actions
+                        for AI to execute next</p>
                 </button>
             </div>
 
             <div id="status-tree-container" class="fade-in hidden">
-                <div id="architecture-card" class="max-w-3xl mx-auto glass-card p-12 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
+                <div id="architecture-card"
+                    class="max-w-3xl mx-auto glass-card p-12 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
                     <svg id="bypass-curve-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
                         <defs>
-                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(234, 179, 8, 0)" /><stop offset="50%" stop-color="rgba(250, 204, 21, 1)" /><stop offset="100%" stop-color="rgba(234, 179, 8, 0)" /></linearGradient>
+                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="rgba(234, 179, 8, 0)" />
+                                <stop offset="50%" stop-color="rgba(250, 204, 21, 1)" />
+                                <stop offset="100%" stop-color="rgba(234, 179, 8, 0)" />
+                            </linearGradient>
                         </defs>
                         <path id="curve-base" class="curve-path-base hidden" d="M 80,100 Q 300,0 520,100" />
                         <path id="curve-flow" class="curve-path-flow" d="M 80,100 Q 300,0 520,100" />
                     </svg>
                     <div class="flex justify-between items-center mb-12">
-                        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Prompt 構成架構</h4>
-                        <button onclick="showConfirmModal()" class="text-xs text-red-400 hover:text-red-300 transition bg-red-400/10 px-3 py-1.5 rounded-lg border border-red-400/20 font-bold">重置進度</button>
+                        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest"
+                            data-i18n="architecture_title">Prompt Architecture</h4>
+                        <button onclick="showConfirmModal()"
+                            class="text-xs text-red-400 hover:text-red-300 transition bg-red-400/10 px-3 py-1.5 rounded-lg border border-red-400/20 font-bold"
+                            data-i18n="btn_reset">Reset Progress</button>
                     </div>
                     <div class="flex items-center justify-between relative px-6 md:px-12">
-                        <div class="path-line left-[60px] md:left-[84px] w-[calc(50%-48px)] md:w-[calc(50%-64px)]"><div id="line-1-2" class="path-progress"></div></div>
-                        <div class="path-line right-[60px] md:right-[84px] w-[calc(50%-48px)] md:w-[calc(50%-64px)]"><div id="line-2-3" class="path-progress"></div></div>
-                        <div id="node-inherit" class="w-14 h-14 rounded-full border-2 border-gray-700 bg-gray-900 flex items-center justify-center relative z-10 transition-all duration-500 text-gray-500">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <div class="path-line left-[60px] md:left-[84px] w-[calc(50%-48px)] md:w-[calc(50%-64px)]">
+                            <div id="line-1-2" class="path-progress"></div>
                         </div>
-                        <div id="node-goal" class="w-14 h-14 rounded-full border-2 border-gray-700 bg-gray-900 flex items-center justify-center relative z-10 transition-all duration-500 text-gray-500">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div class="path-line right-[60px] md:right-[84px] w-[calc(50%-48px)] md:w-[calc(50%-64px)]">
+                            <div id="line-2-3" class="path-progress"></div>
                         </div>
-                        <div id="node-next" class="w-14 h-14 rounded-full border-2 border-gray-700 bg-gray-900 flex items-center justify-center relative z-10 transition-all duration-500 text-gray-500">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <div id="node-inherit"
+                            class="w-14 h-14 rounded-full border-2 border-gray-700 bg-gray-900 flex items-center justify-center relative z-10 transition-all duration-500 text-gray-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div id="node-goal"
+                            class="w-14 h-14 rounded-full border-2 border-gray-700 bg-gray-900 flex items-center justify-center relative z-10 transition-all duration-500 text-gray-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div id="node-next"
+                            class="w-14 h-14 rounded-full border-2 border-gray-700 bg-gray-900 flex items-center justify-center relative z-10 transition-all duration-500 text-gray-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
                         </div>
                     </div>
                     <div class="mt-16 text-center">
-                        <button onclick="triggerDomainExpansion()" class="bg-blue-600 border border-blue-500 text-white px-12 py-4 rounded-full font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 tracking-widest text-lg">領域展開</button>
+                        <button onclick="triggerDomainExpansion()"
+                            class="bg-blue-600 border border-blue-500 text-white px-12 py-4 rounded-full font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 tracking-widest text-lg"
+                            data-i18n="btn_domain_expand">Domain Expansion</button>
                     </div>
                 </div>
             </div>
             <div class="mt-12 text-center">
-                <button onclick="nextStep(0)" class="text-gray-500 hover:text-white transition text-sm">← 返回入口首頁</button>
+                <button onclick="nextStep(0)" class="text-gray-500 hover:text-white transition text-sm"
+                    data-i18n="btn_back_home">← Back to Home</button>
             </div>
         </section>
 
         <!-- Step 2: 輸入編輯區域 -->
         <section id="step-input" class="max-w-4xl w-full hidden fade-in">
             <div class="mb-8 flex items-center justify-between">
-                <button onclick="nextStep(1)" class="text-gray-400 hover:text-white transition flex items-center text-sm font-bold">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    返回架構視窗
+                <button onclick="nextStep(1)"
+                    class="text-gray-400 hover:text-white transition flex items-center text-sm font-bold">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span data-i18n="btn_back_arch">Back to Architecture</span>
                 </button>
-                <div id="active-category" class="px-4 py-1 rounded-lg bg-white/10 border border-white/20 text-sm font-bold text-blue-300 tracking-wide uppercase">類別名稱</div>
+                <div id="active-category"
+                    class="px-4 py-1 rounded-lg bg-white/10 border border-white/20 text-sm font-bold text-blue-300 tracking-wide uppercase">
+                    類別名稱</div>
             </div>
 
             <!-- ✨ 格式助手區塊 ✨ -->
-            <div id="prompt-helper" class="helper-box p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hidden">
+            <div id="prompt-helper"
+                class="helper-box p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hidden">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center text-blue-300 font-bold mb-1">
                         <span class="mr-2 text-base">💡</span>
-                        <span class="text-sm">格式助手</span>
+                        <span class="text-sm" data-i18n="format_helper_title">💡 Format Helper</span>
                     </div>
                     <p class="text-xs text-blue-100/60 leading-relaxed text-normal-wrap">
                         複製這段指令給 AI，幫您把碎片化的思緒或會議紀錄整理成結構清晰的交接文檔，再貼回此處。
                     </p>
                 </div>
-                <button onclick="copyHelperPrompt()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-5 py-2.5 rounded-xl font-bold transition-all whitespace-nowrap shadow-lg shadow-blue-500/20 w-full md:w-auto">
-                    複製整理指令
+                <button onclick="copyHelperPrompt()"
+                    class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-5 py-2.5 rounded-xl font-bold transition-all whitespace-nowrap shadow-lg shadow-blue-500/20 w-full md:w-auto"
+                    data-i18n="btn_copy_helper">
+                    Copy Organizing Prompt
                 </button>
             </div>
 
             <div class="input-area p-8 md:p-10 rounded-[2.5rem] shadow-2xl relative">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 id="input-prompt-title" class="text-xl font-bold">描述您的目標</h2>
-                    <button onclick="clearCurrentInput()" class="text-[10px] text-gray-500 hover:text-red-400 transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase font-bold tracking-tighter">清空內容</button>
+                    <h2 id="input-prompt-title" class="text-xl font-bold" data-i18n="input_title_goal">Describe Your
+                        Goal</h2>
+                    <button onclick="clearCurrentInput()"
+                        class="text-[10px] text-gray-500 hover:text-red-400 transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase font-bold tracking-tighter"
+                        data-i18n="btn_clear_content">Clear</button>
                 </div>
 
                 <!-- 核心目標引導 -->
-                <div id="goal-helper" class="goal-helper-inline p-4 rounded-xl mb-6 flex flex-col items-start gap-1 hidden">
+                <div id="goal-helper"
+                    class="goal-helper-inline p-4 rounded-xl mb-6 flex flex-col items-start gap-1 hidden">
                     <p class="text-[11px] text-yellow-100/60 leading-relaxed text-normal-wrap">
-                        描述整體的方向或期望結果。<br>
-                        例如：<span class="text-yellow-400 italic">開發一個註冊頁面</span> 或 <span class="text-yellow-400 italic">寫一篇關於 AI 發展的部落格文章</span>
+                        <span data-i18n="goal_helper_text_1">Describe the overall direction or expected
+                            outcome.</span><br>
+                        <span data-i18n="goal_helper_text_2">e.g.: </span><span class="text-yellow-400 italic"
+                            data-i18n="goal_helper_example_1">Develop a registration page</span><span
+                            data-i18n="or_text"> or </span><span class="text-yellow-400 italic"
+                            data-i18n="goal_helper_example_2">Write a blog post about AI development</span>
                     </p>
                 </div>
-                
+
                 <div class="space-y-6">
                     <div class="relative">
-                        <textarea id="user-input" rows="12" oninput="handleInputContent()" class="w-full bg-black/20 border border-white/10 rounded-2xl p-6 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/5 transition-all placeholder:text-gray-700 font-mono leading-relaxed text-blue-50" placeholder="在此填寫內容"></textarea>
+                        <textarea id="user-input" rows="12" oninput="handleInputContent()"
+                            class="w-full bg-black/20 border border-white/10 rounded-2xl p-6 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/5 transition-all placeholder:text-gray-700 font-mono leading-relaxed text-blue-50"
+                            placeholder="在此填寫內容"></textarea>
                         <div id="char-count" class="absolute bottom-4 right-6 text-xs text-gray-600 font-mono">0 字</div>
                     </div>
-                    
+
                     <!-- KPI 必要完成條件 -->
                     <div id="kpi-section" class="hidden fade-in space-y-4">
                         <div class="flex items-center justify-between border-t border-white/10 pt-6">
-                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center"><span class="mr-2">📊</span> 具體限制與要求 (KPI)</h3>
-                            <button onclick="addKPI()" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-4 py-1.5 rounded-lg border border-blue-500/30 text-[10px] font-bold transition-all">+ 新增條件</button>
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center"
+                                data-i18n="kpi_title">
+                                📊 Specific Constraints & Requirements (KPI)
+                            </h3>
+                            <button onclick="addKPI()"
+                                class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-4 py-1.5 rounded-lg border border-blue-500/30 text-[10px] font-bold transition-all"
+                                data-i18n="btn_add_kpi">+ Add Condition</button>
                         </div>
                         <div id="kpi-list" class="space-y-3"></div>
                     </div>
                 </div>
-                
+
                 <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p class="text-[11px] text-gray-500 italic">※ 系統會自動保存您的草稿</p>
-                    <button onclick="saveAndProceed()" id="save-btn" class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg">確認並返回</button>
+                    <p class="text-[11px] text-gray-500 italic" data-i18n="auto_save_note">※ System auto-saves your
+                        draft</p>
+                    <button onclick="saveAndProceed()" id="save-btn"
+                        class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg"
+                        data-i18n="btn_confirm_return">Confirm & Return</button>
                 </div>
             </div>
         </section>
@@ -329,18 +561,24 @@
         <!-- Step 3: 術式解構路徑 (動態樹狀圖) -->
         <section id="step-tree" class="max-w-6xl w-full hidden fade-in">
             <div class="text-center mb-12">
-                <div class="inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold tracking-widest uppercase mb-4">Structure Observation</div>
-                <h2 class="text-4xl font-bold text-keep-all">Prompt 結構路徑分析</h2>
+                <div
+                    class="inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold tracking-widest uppercase mb-4">
+                    Structure Observation</div>
+                <h2 class="text-4xl font-bold text-keep-all" data-i18n="tree_title">Prompt Structure Path Analysis</h2>
             </div>
-            <div class="glass-card p-4 md:p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-x-auto">
+            <div
+                class="glass-card p-4 md:p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-x-auto">
                 <div class="min-w-[700px] w-full relative h-full flex items-center justify-center">
                     <svg id="tree-svg" class="tree-connector-svg"></svg>
-                    <div id="tree-nodes-container" class="flex items-stretch gap-8 md:gap-12 relative z-10 w-full justify-around flex-nowrap py-10"></div>
+                    <div id="tree-nodes-container"
+                        class="flex items-stretch gap-8 md:gap-12 relative z-10 w-full justify-around flex-nowrap py-10">
+                    </div>
                 </div>
             </div>
             <div class="mt-12 text-center">
-                <button onclick="nextStep(4)" class="group relative px-12 py-5 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all shadow-2xl shadow-blue-500/30">
-                    檢視最終合成結果
+                <button onclick="nextStep(4)"
+                    class="group relative px-12 py-5 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all shadow-2xl shadow-blue-500/30">
+                    <span data-i18n="btn_view_result">View Final Synthesis</span>
                     <span class="inline-block ml-3 group-hover:translate-x-1 transition-transform">→</span>
                 </button>
             </div>
@@ -349,18 +587,31 @@
         <!-- Step 4: Prompt 合成完畢 -->
         <section id="step-result" class="max-w-4xl w-full hidden fade-in">
             <div class="text-center mb-8">
-                <div class="inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold tracking-widest uppercase mb-4">Domain Expanded</div>
-                <h2 class="text-4xl font-bold text-keep-all">Prompt 合成完畢</h2>
+                <div
+                    class="inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold tracking-widest uppercase mb-4">
+                    Domain Expanded</div>
+                <h2 class="text-4xl font-bold text-keep-all" data-i18n="result_title">Prompt Synthesis Complete</h2>
             </div>
             <div class="glass-card p-8 md:p-10 rounded-[3rem] relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-yellow-400 to-blue-500"></div>
-                <div id="result-content" class="text-gray-300 text-[15px] md:text-lg leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto pr-4 font-mono custom-scrollbar">正在從領域中提取內容...</div>
-                
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-yellow-400 to-blue-500">
+                </div>
+                <div id="result-content"
+                    class="text-gray-300 text-[15px] md:text-lg leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto pr-4 font-mono custom-scrollbar">
+                    正在從領域中提取內容...</div>
+
                 <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <button onclick="copyToClipboard()" id="copy-btn" class="py-4 bg-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-500 transition-all flex items-center justify-center shadow-xl">📋 複製內容</button>
-                    <button onclick="downloadMarkdown()" class="py-4 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 rounded-2xl font-bold text-sm hover:bg-emerald-600/40 transition-all flex items-center justify-center">💾 匯出 .md</button>
-                    <button onclick="viewHistory()" class="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all text-sm">📜 歷史紀錄</button>
-                    <button onclick="nextStep(1)" class="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all text-sm">↩️ 繼續編輯</button>
+                    <button onclick="copyToClipboard()" id="copy-btn"
+                        class="py-4 bg-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-500 transition-all flex items-center justify-center shadow-xl"
+                        data-i18n="btn_copy">📋 Copy Content</button>
+                    <button onclick="downloadMarkdown()"
+                        class="py-4 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 rounded-2xl font-bold text-sm hover:bg-emerald-600/40 transition-all flex items-center justify-center"
+                        data-i18n="btn_export_md">💾 Export .md</button>
+                    <button onclick="viewHistory()"
+                        class="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all text-sm"
+                        data-i18n="btn_history_short">📜 History</button>
+                    <button onclick="nextStep(1)"
+                        class="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all text-sm"
+                        data-i18n="btn_continue_edit">↩️ Continue Editing</button>
                 </div>
             </div>
         </section>
@@ -368,38 +619,61 @@
         <!-- Step 5: 歷史紀錄 -->
         <section id="step-history" class="max-w-4xl w-full hidden fade-in">
             <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold mb-2">歷史紀錄</h2>
-                <p class="text-gray-400 text-sm">顯示近期生成的 10 筆指令結果</p>
+                <h2 class="text-3xl font-bold mb-2" data-i18n="history_title">History</h2>
+                <p class="text-gray-400 text-sm" data-i18n="history_subtitle">Showing recent 10 generated prompt results
+                </p>
             </div>
             <div id="history-list" class="space-y-6 max-h-[650px] overflow-y-auto pr-4 custom-scrollbar"></div>
             <div class="mt-10 text-center flex flex-col sm:flex-row gap-4 justify-center">
-                <button onclick="nextStep(0)" class="px-10 py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all">← 返回首頁</button>
-                <button onclick="clearHistory()" class="px-10 py-4 bg-red-600/20 border border-red-500/30 rounded-2xl font-bold text-red-400 hover:bg-red-600/40 transition-all">清空歷史紀錄</button>
+                <button onclick="nextStep(0)"
+                    class="px-10 py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all"
+                    data-i18n="btn_back_home_2">← Back to Home</button>
+                <button onclick="clearHistory()"
+                    class="px-10 py-4 bg-red-600/20 border border-red-500/30 rounded-2xl font-bold text-red-400 hover:bg-red-600/40 transition-all"
+                    data-i18n="btn_clear_history">Clear History</button>
             </div>
         </section>
 
     </main>
 
     <!-- UI 互動小工具 -->
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] hidden bg-gray-900 border border-white/10 px-8 py-3 rounded-full shadow-2xl fade-in text-xs font-bold tracking-wider text-blue-400"></div>
+    <div id="toast"
+        class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] hidden bg-gray-900 border border-white/10 px-8 py-3 rounded-full shadow-2xl fade-in text-xs font-bold tracking-wider text-blue-400">
+    </div>
 
     <!-- 全域設定 Modal -->
-    <div id="settings-modal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
+    <div id="settings-modal"
+        class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
         <div class="bg-gray-900 border border-white/10 p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl relative">
-            <h3 class="text-2xl font-bold mb-6 text-white flex items-center"><svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>全域環境設定</h3>
-            
+            <h3 class="text-2xl font-bold mb-6 text-white flex items-center"><svg class="w-6 h-6 mr-2 text-blue-400"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg><span data-i18n="settings_title">Global Environment Settings</span></h3>
+
             <div class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2">AI 扮演角色 (Role / Persona)</label>
-                    <input type="text" id="setting-role" placeholder="例如：資深前端工程師、專業文案寫手..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder:text-gray-600">
+                    <label class="block text-xs font-bold text-gray-400 mb-2" data-i18n="setting_role_label">AI Role
+                        (Role / Persona)</label>
+                    <input type="text" id="setting-role" data-i18n="setting_role_placeholder"
+                        placeholder="e.g.: Senior Frontend Engineer, Professional Copywriter..."
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder:text-gray-600">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2">語氣與風格 (Tone)</label>
-                    <input type="text" id="setting-tone" placeholder="例如：專業嚴謹、輕鬆幽默、簡明扼要..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder:text-gray-600">
+                    <label class="block text-xs font-bold text-gray-400 mb-2" data-i18n="setting_tone_label">Tone &
+                        Style (Tone)</label>
+                    <input type="text" id="setting-tone" data-i18n="setting_tone_placeholder"
+                        placeholder="e.g.: Professional, Humorous, Concise..."
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder:text-gray-600">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2">輸出語言 (Language)</label>
-                    <select id="setting-lang" class="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white">
+                    <label class="block text-xs font-bold text-gray-400 mb-2" data-i18n="setting_lang_label">Output
+                        Language (Language)</label>
+                    <select id="setting-lang"
+                        class="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white">
                         <option value="繁體中文">繁體中文 (Traditional Chinese)</option>
                         <option value="English">English</option>
                         <option value="日本語">日本語 (Japanese)</option>
@@ -409,37 +683,420 @@
             </div>
 
             <div class="mt-8 flex gap-4">
-                <button onclick="closeSettingsModal()" class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-sm text-white hover:bg-white/10 transition-all">取消</button>
-                <button onclick="saveSettings()" class="flex-1 py-3 rounded-xl bg-blue-600 font-bold text-white text-sm hover:bg-blue-500 transition-all">儲存設定</button>
+                <button onclick="closeSettingsModal()"
+                    class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-sm text-white hover:bg-white/10 transition-all"
+                    data-i18n="btn_cancel">Cancel</button>
+                <button onclick="saveSettings()"
+                    class="flex-1 py-3 rounded-xl bg-blue-600 font-bold text-white text-sm hover:bg-blue-500 transition-all"
+                    data-i18n="btn_save_settings">Save Settings</button>
             </div>
         </div>
     </div>
 
     <!-- 重置確認 Modal -->
-    <div id="confirm-modal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
+    <div id="confirm-modal"
+        class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
         <div class="bg-gray-900 border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full shadow-2xl text-center">
-            <h3 class="text-xl font-bold mb-3 text-white">確定要重置嗎？</h3>
-            <p class="text-gray-400 mb-10 text-xs">這將會清除目前正在編輯的所有模組內容</p>
+            <h3 class="text-xl font-bold mb-3 text-white" data-i18n="confirm_reset_title">Are you sure you want to
+                reset?</h3>
+            <p class="text-gray-400 mb-10 text-xs" data-i18n="confirm_reset_desc">This will clear all module content
+                currently being edited</p>
             <div class="flex gap-4">
-                <button onclick="closeConfirmModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-sm text-white hover:bg-white/10">取消</button>
-                <button onclick="confirmClearAll()" class="flex-1 py-4 rounded-2xl bg-red-600 font-bold text-white text-sm hover:bg-red-500">確定重置</button>
+                <button onclick="closeConfirmModal()"
+                    class="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-sm text-white hover:bg-white/10"
+                    data-i18n="btn_cancel">Cancel</button>
+                <button onclick="confirmClearAll()"
+                    class="flex-1 py-4 rounded-2xl bg-red-600 font-bold text-white text-sm hover:bg-red-500"
+                    data-i18n="btn_confirm_reset">Confirm Reset</button>
             </div>
         </div>
     </div>
 
     <script>
+        // ===== i18n 翻譯系統 =====
+        const translations = {
+            'en': {
+                'badge_workshop': '✨ Smart Prompt Workshop',
+                'title_prompt': 'AI Prompt ',
+                'title_generator': 'Smart Generator',
+                'subtitle_1': 'Break free from traditional prompt limitations',
+                'subtitle_2': 'Through visual module guidance, ',
+                'subtitle_3': 'freely combine your needs',
+                'subtitle_4': 'to create AI prompts that truly understand you',
+                'draft_found': 'Unfinished Draft Found',
+                'draft_desc': 'You have an incomplete prompt from last session',
+                'btn_resume_draft': 'Resume Draft',
+                'btn_start': 'Start Building Prompt',
+                'btn_history': 'View History',
+                'step1_title': 'Select Prompt Modules',
+                'step1_subtitle': 'Fill in modules to activate golden energy connections',
+                'card_inherit_title': 'Inherited Context',
+                'card_inherit_desc': 'Paste previous output for AI to understand current progress',
+                'card_goal_title': 'Core Goal',
+                'card_goal_desc': 'Set expected outcomes and specific constraints',
+                'card_next_title': 'Next Steps',
+                'card_next_desc': 'Specify concrete actions for AI to execute next',
+                'badge_filled': 'Filled',
+                'architecture_title': 'Prompt Architecture',
+                'btn_reset': 'Reset Progress',
+                'btn_domain_expand': 'Domain Expansion',
+                'btn_back_home': '← Back to Home',
+                'btn_back_arch': 'Back to Architecture',
+                'category_label': 'Category',
+                'format_helper_title': '💡 Format Helper',
+                'format_helper_desc': 'Copy this prompt to AI to organize your fragmented thoughts or meeting notes into a structured handover document, then paste back here.',
+                'btn_copy_helper': 'Copy Organizing Prompt',
+                'input_title_goal': 'Describe Your Goal',
+                'input_title_inherit': 'Paste Background Information or Existing Content',
+                'input_title_next': 'Describe Specific Next Actions',
+                'btn_clear_content': 'Clear',
+                'goal_helper_text_1': 'Describe the overall direction or expected outcome.',
+                'goal_helper_text_2': 'e.g.: ',
+                'goal_helper_example_1': 'Develop a registration page',
+                'goal_helper_example_2': 'Write a blog post about AI development',
+                'kpi_title': '📊 Specific Constraints & Requirements (KPI)',
+                'btn_add_kpi': '+ Add Condition',
+                'kpi_placeholder': 'Specific requirements, format constraints, or must-include points',
+                'auto_save_note': '※ System auto-saves your draft',
+                'btn_confirm_return': 'Confirm & Return',
+                'tree_observation': 'Structure Observation',
+                'tree_title': 'Prompt Structure Path Analysis',
+                'btn_view_result': 'View Final Synthesis',
+                'result_badge': 'Domain Expanded',
+                'result_title': 'Prompt Synthesis Complete',
+                'result_loading': 'Extracting content from domain...',
+                'btn_copy': '📋 Copy Content',
+                'btn_export_md': '💾 Export .md',
+                'btn_history_short': '📜 History',
+                'btn_continue_edit': '↩️ Continue Editing',
+                'history_title': 'History',
+                'history_subtitle': 'Showing recent 10 generated prompt results',
+                'btn_back_home_2': '← Back to Home',
+                'btn_clear_history': 'Clear History',
+                'no_history': 'No history yet',
+                'history_load_draft': 'Load as Draft',
+                'history_copy': 'Copy',
+                'settings_title': 'Global Environment Settings',
+                'settings_btn': 'Global Environment Settings',
+                'setting_role_label': 'AI Role (Role / Persona)',
+                'setting_role_placeholder': 'e.g.: Senior Frontend Engineer, Professional Copywriter...',
+                'setting_tone_label': 'Tone & Style (Tone)',
+                'setting_tone_placeholder': 'e.g.: Professional, Humorous, Concise...',
+                'setting_lang_label': 'Output Language (Language)',
+                'btn_cancel': 'Cancel',
+                'btn_save_settings': 'Save Settings',
+                'confirm_reset_title': 'Are you sure you want to reset?',
+                'confirm_reset_desc': 'This will clear all module content currently being edited',
+                'btn_confirm_reset': 'Confirm Reset',
+                'char_suffix': ' chars',
+                'toast_draft_resumed': 'Draft progress has been resumed',
+                'toast_settings_saved': 'Global settings saved',
+                'toast_content_cleared': 'Content cleared',
+                'toast_module_saved': 'Module saved',
+                'toast_module_removed': 'Module removed',
+                'toast_reset_done': 'Architecture fully reset',
+                'toast_expanding': 'Domain expanding, extracting settings...',
+                'toast_md_download': 'Markdown file download started',
+                'toast_copied': 'Content copied',
+                'toast_history_cleared': 'History cleared',
+                'toast_loaded_draft': 'History loaded as draft',
+                'toast_helper_copied': 'Organizing prompt copied, please paste to AI',
+                'confirm_clear_history': 'Are you sure you want to clear all history?',
+                'prompt_system_title': '【System & Role Settings】',
+                'prompt_role': '- Role: ',
+                'prompt_tone': '- Tone & Style: ',
+                'prompt_lang': '- Output Language: ',
+                'prompt_context': '### Existing Background & Context (Context)',
+                'prompt_goal': '### Core Goal (Goal)',
+                'prompt_no_desc': 'No abstract description',
+                'prompt_constraints': '【Constraints & Requirements】:',
+                'prompt_action': '### Next Steps (Action)',
+                'prompt_footer': '---\nNote: Please carefully read the above settings and context, and provide the best output that meets the constraints.',
+                'tree_system': 'System',
+                'tree_context': 'Context',
+                'tree_target': 'Target',
+                'tree_constraint': 'Constraint',
+                'tree_action': 'Action',
+                'tree_role_prefix': 'Role: ',
+                'tree_tone_prefix': 'Tone: ',
+                'tree_core_goal': 'Core Goal',
+                'copied_label': '✅ Copied',
+                'copy_label': '📋 Copy Content',
+                'or_text': ' or '
+            },
+            'zh-TW': {
+                'badge_workshop': '✨ 智慧指令工作坊',
+                'title_prompt': 'AI Prompt ',
+                'title_generator': '智能產生器',
+                'subtitle_1': '跳脫傳統指令的侷限',
+                'subtitle_2': '透過視覺化模組引導，',
+                'subtitle_3': '自由組合您的需求',
+                'subtitle_4': '產出最懂您的 AI 指令',
+                'draft_found': '發現未完成的草稿',
+                'draft_desc': '您有上次尚未生成的指令進度',
+                'btn_resume_draft': '恢復草稿',
+                'btn_start': '開始建構指令',
+                'btn_history': '查看歷史紀錄',
+                'step1_title': '選擇指令模組',
+                'step1_subtitle': '填寫模組以啟動金色的能量傳輸連線',
+                'card_inherit_title': '繼承背景',
+                'card_inherit_desc': '貼入過去的產出內容，讓 AI 了解目前進度',
+                'card_goal_title': '核心目標',
+                'card_goal_desc': '設定期望達成的最終結果與特定限制',
+                'card_next_title': '下一步計畫',
+                'card_next_desc': '明確指示 AI 接下來應該執行的具體動作',
+                'badge_filled': '已填寫',
+                'architecture_title': 'Prompt 構成架構',
+                'btn_reset': '重置進度',
+                'btn_domain_expand': '領域展開',
+                'btn_back_home': '← 返回入口首頁',
+                'btn_back_arch': '返回架構視窗',
+                'category_label': '類別名稱',
+                'format_helper_title': '💡 格式助手',
+                'format_helper_desc': '複製這段指令給 AI，幫您把碎片化的思緒或會議紀錄整理成結構清晰的交接文檔，再貼回此處。',
+                'btn_copy_helper': '複製整理指令',
+                'input_title_goal': '描述您的目標與方向',
+                'input_title_inherit': '貼上背景資訊或既有內容',
+                'input_title_next': '描述具體的下一步行動',
+                'btn_clear_content': '清空內容',
+                'goal_helper_text_1': '描述整體的方向或期望結果。',
+                'goal_helper_text_2': '例如：',
+                'goal_helper_example_1': '開發一個註冊頁面',
+                'goal_helper_example_2': '寫一篇關於 AI 發展的部落格文章',
+                'kpi_title': '📊 具體限制與要求 (KPI)',
+                'btn_add_kpi': '+ 新增條件',
+                'kpi_placeholder': '具體需求、格式限制或必須包含的要點',
+                'auto_save_note': '※ 系統會自動保存您的草稿',
+                'btn_confirm_return': '確認並返回',
+                'tree_observation': 'Structure Observation',
+                'tree_title': 'Prompt 結構路徑分析',
+                'btn_view_result': '檢視最終合成結果',
+                'result_badge': 'Domain Expanded',
+                'result_title': 'Prompt 合成完畢',
+                'result_loading': '正在從領域中提取內容...',
+                'btn_copy': '📋 複製內容',
+                'btn_export_md': '💾 匯出 .md',
+                'btn_history_short': '📜 歷史紀錄',
+                'btn_continue_edit': '↩️ 繼續編輯',
+                'history_title': '歷史紀錄',
+                'history_subtitle': '顯示近期生成的 10 筆指令結果',
+                'btn_back_home_2': '← 返回首頁',
+                'btn_clear_history': '清空歷史紀錄',
+                'no_history': '目前尚無歷史紀錄',
+                'history_load_draft': '作為草稿載入',
+                'history_copy': '複製',
+                'settings_title': '全域環境設定',
+                'settings_btn': '全域環境設定',
+                'setting_role_label': 'AI 扮演角色 (Role / Persona)',
+                'setting_role_placeholder': '例如：資深前端工程師、專業文案寫手...',
+                'setting_tone_label': '語氣與風格 (Tone)',
+                'setting_tone_placeholder': '例如：專業嚴謹、輕鬆幽默、簡明扼要...',
+                'setting_lang_label': '輸出語言 (Language)',
+                'btn_cancel': '取消',
+                'btn_save_settings': '儲存設定',
+                'confirm_reset_title': '確定要重置嗎？',
+                'confirm_reset_desc': '這將會清除目前正在編輯的所有模組內容',
+                'btn_confirm_reset': '確定重置',
+                'char_suffix': ' 字',
+                'toast_draft_resumed': '已恢復上次的草稿進度',
+                'toast_settings_saved': '全域設定已儲存',
+                'toast_content_cleared': '內容已清空',
+                'toast_module_saved': '模組已保存',
+                'toast_module_removed': '模組已移除',
+                'toast_reset_done': '架構已完全重置',
+                'toast_expanding': '領域展開中，萃取設定...',
+                'toast_md_download': 'Markdown 檔案已開始下載',
+                'toast_copied': '內容已複製',
+                'toast_history_cleared': '紀錄已清除',
+                'toast_loaded_draft': '已將歷史紀錄載入草稿區',
+                'toast_helper_copied': '整理指令已複製，請貼給 AI 處理',
+                'confirm_clear_history': '確定要清空所有歷史紀錄嗎？',
+                'prompt_system_title': '【系統與角色設定】',
+                'prompt_role': '- 扮演角色：',
+                'prompt_tone': '- 語氣風格：',
+                'prompt_lang': '- 輸出語言：',
+                'prompt_context': '### 既有背景與上下文 (Context)',
+                'prompt_goal': '### 核心目標 (Goal)',
+                'prompt_no_desc': '無抽象描述',
+                'prompt_constraints': '【限制條件與具體要求】：',
+                'prompt_action': '### 下一步具體行動 (Action)',
+                'prompt_footer': '---\n提示：請確實閱讀上述設定與上下文，並給出符合限制條件的最優產出。',
+                'tree_system': 'System',
+                'tree_context': 'Context',
+                'tree_target': 'Target',
+                'tree_constraint': 'Constraint',
+                'tree_action': 'Action',
+                'tree_role_prefix': '角色：',
+                'tree_tone_prefix': '語氣：',
+                'tree_core_goal': '核心目標',
+                'copied_label': '✅ 已複製',
+                'copy_label': '📋 複製內容',
+                'or_text': ' 或 '
+            },
+            'zh-CN': {
+                'badge_workshop': '✨ 智能指令工作坊',
+                'title_prompt': 'AI Prompt ',
+                'title_generator': '智能生成器',
+                'subtitle_1': '跳脱传统指令的局限',
+                'subtitle_2': '通过可视化模块引导，',
+                'subtitle_3': '自由组合您的需求',
+                'subtitle_4': '产出最懂您的 AI 指令',
+                'draft_found': '发现未完成的草稿',
+                'draft_desc': '您有上次尚未生成的指令进度',
+                'btn_resume_draft': '恢复草稿',
+                'btn_start': '开始构建指令',
+                'btn_history': '查看历史记录',
+                'step1_title': '选择指令模块',
+                'step1_subtitle': '填写模块以启动金色的能量传输连线',
+                'card_inherit_title': '继承背景',
+                'card_inherit_desc': '贴入过去的产出内容，让 AI 了解目前进度',
+                'card_goal_title': '核心目标',
+                'card_goal_desc': '设定期望达成的最终结果与特定限制',
+                'card_next_title': '下一步计划',
+                'card_next_desc': '明确指示 AI 接下来应该执行的具体动作',
+                'badge_filled': '已填写',
+                'architecture_title': 'Prompt 构成架构',
+                'btn_reset': '重置进度',
+                'btn_domain_expand': '领域展开',
+                'btn_back_home': '← 返回入口首页',
+                'btn_back_arch': '返回架构视窗',
+                'category_label': '类别名称',
+                'format_helper_title': '💡 格式助手',
+                'format_helper_desc': '复制这段指令给 AI，帮您把碎片化的思绪或会议记录整理成结构清晰的交接文档，再贴回此处。',
+                'btn_copy_helper': '复制整理指令',
+                'input_title_goal': '描述您的目标与方向',
+                'input_title_inherit': '贴上背景信息或既有内容',
+                'input_title_next': '描述具体的下一步行动',
+                'btn_clear_content': '清空内容',
+                'goal_helper_text_1': '描述整体的方向或期望结果。',
+                'goal_helper_text_2': '例如：',
+                'goal_helper_example_1': '开发一个注册页面',
+                'goal_helper_example_2': '写一篇关于 AI 发展的博客文章',
+                'kpi_title': '📊 具体限制与要求 (KPI)',
+                'btn_add_kpi': '+ 新增条件',
+                'kpi_placeholder': '具体需求、格式限制或必须包含的要点',
+                'auto_save_note': '※ 系统会自动保存您的草稿',
+                'btn_confirm_return': '确认并返回',
+                'tree_observation': 'Structure Observation',
+                'tree_title': 'Prompt 结构路径分析',
+                'btn_view_result': '查看最终合成结果',
+                'result_badge': 'Domain Expanded',
+                'result_title': 'Prompt 合成完毕',
+                'result_loading': '正在从领域中提取内容...',
+                'btn_copy': '📋 复制内容',
+                'btn_export_md': '💾 导出 .md',
+                'btn_history_short': '📜 历史记录',
+                'btn_continue_edit': '↩️ 继续编辑',
+                'history_title': '历史记录',
+                'history_subtitle': '显示近期生成的 10 条指令结果',
+                'btn_back_home_2': '← 返回首页',
+                'btn_clear_history': '清空历史记录',
+                'no_history': '目前尚无历史记录',
+                'history_load_draft': '作为草稿载入',
+                'history_copy': '复制',
+                'settings_title': '全域环境设定',
+                'settings_btn': '全域环境设定',
+                'setting_role_label': 'AI 扮演角色 (Role / Persona)',
+                'setting_role_placeholder': '例如：资深前端工程师、专业文案写手...',
+                'setting_tone_label': '语气与风格 (Tone)',
+                'setting_tone_placeholder': '例如：专业严谨、轻松幽默、简明扼要...',
+                'setting_lang_label': '输出语言 (Language)',
+                'btn_cancel': '取消',
+                'btn_save_settings': '保存设定',
+                'confirm_reset_title': '确定要重置吗？',
+                'confirm_reset_desc': '这将会清除目前正在编辑的所有模块内容',
+                'btn_confirm_reset': '确定重置',
+                'char_suffix': ' 字',
+                'toast_draft_resumed': '已恢复上次的草稿进度',
+                'toast_settings_saved': '全域设定已保存',
+                'toast_content_cleared': '内容已清空',
+                'toast_module_saved': '模块已保存',
+                'toast_module_removed': '模块已移除',
+                'toast_reset_done': '架构已完全重置',
+                'toast_expanding': '领域展开中，萃取设定...',
+                'toast_md_download': 'Markdown 文件已开始下载',
+                'toast_copied': '内容已复制',
+                'toast_history_cleared': '记录已清除',
+                'toast_loaded_draft': '已将历史记录载入草稿区',
+                'toast_helper_copied': '整理指令已复制，请贴给 AI 处理',
+                'confirm_clear_history': '确定要清空所有历史记录吗？',
+                'prompt_system_title': '【系统与角色设定】',
+                'prompt_role': '- 扮演角色：',
+                'prompt_tone': '- 语气风格：',
+                'prompt_lang': '- 输出语言：',
+                'prompt_context': '### 既有背景与上下文 (Context)',
+                'prompt_goal': '### 核心目标 (Goal)',
+                'prompt_no_desc': '无抽象描述',
+                'prompt_constraints': '【限制条件与具体要求】：',
+                'prompt_action': '### 下一步具体行动 (Action)',
+                'prompt_footer': '---\n提示：请确实阅读上述设定与上下文，并给出符合限制条件的最优产出。',
+                'tree_system': 'System',
+                'tree_context': 'Context',
+                'tree_target': 'Target',
+                'tree_constraint': 'Constraint',
+                'tree_action': 'Action',
+                'tree_role_prefix': '角色：',
+                'tree_tone_prefix': '语气：',
+                'tree_core_goal': '核心目标',
+                'copied_label': '✅ 已复制',
+                'copy_label': '📋 复制内容',
+                'or_text': ' 或 '
+            }
+        };
+
+        // 网页语言 → 输出语言 映射
+        const uiLangToOutputLang = { 'en': 'English', 'zh-TW': '繁體中文', 'zh-CN': '簡體中文' };
+        let currentUILang = localStorage.getItem('uiLanguage') || 'en';
+
+        function t(key) { return (translations[currentUILang] && translations[currentUILang][key]) || translations['en'][key] || key; }
+
+        function applyLanguage(lang) {
+            currentUILang = lang;
+            localStorage.setItem('uiLanguage', lang);
+            document.documentElement.lang = lang;
+            document.getElementById('ui-lang-select').value = lang;
+            // 翻译所有 data-i18n 元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const translated = t(key);
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                    el.placeholder = translated;
+                } else {
+                    el.innerHTML = translated;
+                }
+            });
+            // 更新字数显示
+            const charCount = document.getElementById('char-count');
+            if (charCount) {
+                const val = document.getElementById('user-input').value;
+                charCount.innerText = val.length + t('char_suffix');
+            }
+            // 如果用户没有手动修改过输出语言，跟随网页语言
+            if (!promptState._outputLangManuallySet) {
+                promptState.global.language = uiLangToOutputLang[lang] || 'English';
+            }
+        }
+
+        function onUILangChange(val) {
+            applyLanguage(val);
+        }
+
         // 狀態管理擴充了 global 設定
         let currentType = '';
-        const defaultState = { 
-            global: { role: '', tone: '', language: '繁體中文' },
-            inherit: { filled: false, data: "" }, 
-            goal: { filled: false, data: "", kpis: [] }, 
-            next: { filled: false, data: "" } 
+        const defaultState = {
+            global: { role: '', tone: '', language: uiLangToOutputLang[currentUILang] || 'English' },
+            inherit: { filled: false, data: "" },
+            goal: { filled: false, data: "", kpis: [] },
+            next: { filled: false, data: "" },
+            _outputLangManuallySet: false
         };
         let promptState = JSON.parse(JSON.stringify(defaultState));
-        
-        // 頁面載入時檢查是否有未完成的草稿
+
+        // 頁面載入時檢查是否有未完成的草稿，並初始化語言
         window.onload = () => {
+            // 初始化語言
+            applyLanguage(currentUILang);
+
             const draft = localStorage.getItem('promptDraft');
             if (draft) {
                 const parsedDraft = JSON.parse(draft);
@@ -457,7 +1114,7 @@
                 document.getElementById('draft-alert').classList.add('hidden');
                 updateStatusTree();
                 nextStep(1);
-                showToast('已恢復上次的草稿進度');
+                showToast(t('toast_draft_resumed'));
             }
         }
 
@@ -470,20 +1127,20 @@
         }
 
         function nextStep(step) {
-            const sections = { 
-                0: document.getElementById('step-home'), 
-                1: document.getElementById('step-selection'), 
-                2: document.getElementById('step-input'), 
-                3: document.getElementById('step-tree'), 
-                4: document.getElementById('step-result'), 
-                5: document.getElementById('step-history') 
+            const sections = {
+                0: document.getElementById('step-home'),
+                1: document.getElementById('step-selection'),
+                2: document.getElementById('step-input'),
+                3: document.getElementById('step-tree'),
+                4: document.getElementById('step-result'),
+                5: document.getElementById('step-history')
             };
             Object.values(sections).forEach(section => section.classList.add('hidden'));
             sections[step].classList.remove('hidden');
-            
+
             // 處理全局 Header 的顯示
             const header = document.getElementById('global-header');
-            if(step === 1 || step === 2) header.classList.remove('hidden');
+            if (step === 1 || step === 2) header.classList.remove('hidden');
             else header.classList.add('hidden');
 
             if (step === 1) updateStatusTree();
@@ -492,6 +1149,8 @@
 
         function freshStart() {
             promptState = JSON.parse(JSON.stringify(defaultState));
+            promptState.global.language = uiLangToOutputLang[currentUILang] || 'English';
+            promptState._outputLangManuallySet = false;
             clearDraft();
             updateStatusTree();
             nextStep(1);
@@ -504,23 +1163,23 @@
             const goalHelper = document.getElementById('goal-helper');
             const kpiSection = document.getElementById('kpi-section');
             const inputTitle = document.getElementById('input-prompt-title');
-            
+
             document.getElementById('active-category').innerText = label;
             textarea.value = promptState[type].data;
             handleInputContent(); // 更新字數
-            
+
             if (type === 'goal') {
                 textarea.rows = 4; // 目標描述不用太長
-                inputTitle.innerText = "描述您的目標與方向"; 
-                goalHelper.classList.remove('hidden'); 
-                kpiSection.classList.remove('hidden'); 
-                formatHelper.classList.add('hidden'); 
+                inputTitle.innerText = t('input_title_goal');
+                goalHelper.classList.remove('hidden');
+                kpiSection.classList.remove('hidden');
+                formatHelper.classList.add('hidden');
                 renderKPIs();
             } else {
-                textarea.rows = 12; 
-                inputTitle.innerText = type === 'inherit' ? "貼上背景資訊或既有內容" : "描述具體的下一步行動"; 
-                goalHelper.classList.add('hidden'); 
-                kpiSection.classList.add('hidden'); 
+                textarea.rows = 12;
+                inputTitle.innerText = type === 'inherit' ? t('input_title_inherit') : t('input_title_next');
+                goalHelper.classList.add('hidden');
+                kpiSection.classList.add('hidden');
                 formatHelper.classList.toggle('hidden', type !== 'inherit');
             }
             nextStep(2);
@@ -528,9 +1187,9 @@
 
         function handleInputContent() {
             const val = document.getElementById('user-input').value;
-            document.getElementById('char-count').innerText = `${val.length} 字`;
+            document.getElementById('char-count').innerText = val.length + t('char_suffix');
             // 即時更新草稿
-            if(currentType === 'goal') {
+            if (currentType === 'goal') {
                 promptState.goal.data = val;
             } else {
                 promptState[currentType].data = val;
@@ -542,7 +1201,7 @@
         function openSettingsModal() {
             document.getElementById('setting-role').value = promptState.global.role || '';
             document.getElementById('setting-tone').value = promptState.global.tone || '';
-            document.getElementById('setting-lang').value = promptState.global.language || '繁體中文';
+            document.getElementById('setting-lang').value = promptState.global.language || uiLangToOutputLang[currentUILang] || 'English';
             document.getElementById('settings-modal').classList.add('modal-active');
         }
 
@@ -553,41 +1212,48 @@
         function saveSettings() {
             promptState.global.role = document.getElementById('setting-role').value.trim();
             promptState.global.tone = document.getElementById('setting-tone').value.trim();
-            promptState.global.language = document.getElementById('setting-lang').value;
+            const newLang = document.getElementById('setting-lang').value;
+            // 如果用户主动修改了输出语言，标记为手动设置
+            if (newLang !== uiLangToOutputLang[currentUILang]) {
+                promptState._outputLangManuallySet = true;
+            }
+            promptState.global.language = newLang;
             autoSaveDraft();
             closeSettingsModal();
-            showToast('全域設定已儲存');
+            showToast(t('toast_settings_saved'));
         }
 
         // --- KPI 邏輯 ---
         function renderKPIs() {
             const list = document.getElementById('kpi-list');
-            list.innerHTML = promptState.goal.kpis.map((kpi, index) => `
+            list.innerHTML = promptState.goal.kpis.map((kpi, index) => {
+                const kpiPh = t('kpi_placeholder'); return `
                 <div class="flex gap-2 fade-in group">
-                    <input type="text" value="${kpi}" oninput="updateKPIValue(${index}, this.value)" placeholder="具體需求、格式限制或必須包含的要點" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-blue-100 font-mono">
+                    <input type="text" value="${kpi}" oninput="updateKPIValue(${index}, this.value)" placeholder="${kpiPh}" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-blue-100 font-mono">
                     <button onclick="removeKPI(${index})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-3 rounded-xl border border-red-500/20 transition-all opacity-50 group-hover:opacity-100"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function addKPI() { promptState.goal.kpis.push(""); renderKPIs(); autoSaveDraft(); }
         function updateKPIValue(index, val) { promptState.goal.kpis[index] = val; autoSaveDraft(); }
         function removeKPI(index) { promptState.goal.kpis.splice(index, 1); renderKPIs(); autoSaveDraft(); }
-        
-        function clearCurrentInput() { 
-            document.getElementById('user-input').value = ''; 
+
+        function clearCurrentInput() {
+            document.getElementById('user-input').value = '';
             handleInputContent();
             if (currentType === 'goal') {
-                promptState.goal.kpis = []; 
-                renderKPIs(); 
+                promptState.goal.kpis = [];
+                renderKPIs();
             }
             autoSaveDraft();
-            showToast('內容已清空'); 
+            showToast(t('toast_content_cleared'));
         }
 
         function showConfirmModal() { document.getElementById('confirm-modal').classList.add('modal-active'); }
         function closeConfirmModal() { document.getElementById('confirm-modal').classList.remove('modal-active'); }
-        function confirmClearAll() { freshStart(); closeConfirmModal(); showToast('架構已完全重置'); }
+        function confirmClearAll() { freshStart(); closeConfirmModal(); showToast(t('toast_reset_done')); }
 
         function saveAndProceed() {
             const content = document.getElementById('user-input').value.trim();
@@ -601,7 +1267,7 @@
                 promptState[currentType].data = content;
             }
             autoSaveDraft();
-            showToast(promptState[currentType].filled ? '模組已保存' : '模組已移除');
+            showToast(promptState[currentType].filled ? t('toast_module_saved') : t('toast_module_removed'));
             setTimeout(() => nextStep(1), 300);
         }
 
@@ -610,7 +1276,7 @@
             const nodes = { inherit: document.getElementById('node-inherit'), goal: document.getElementById('node-goal'), next: document.getElementById('node-next') };
             const l12 = document.getElementById('line-1-2'), l23 = document.getElementById('line-2-3');
             const cb = document.getElementById('curve-base'), cf = document.getElementById('curve-flow');
-            
+
             // 更新卡片上的「已填寫」標籤
             document.getElementById('badge-inherit').classList.toggle('hidden', !promptState.inherit.filled);
             document.getElementById('badge-goal').classList.toggle('hidden', !promptState.goal.filled);
@@ -618,19 +1284,19 @@
 
             Object.keys(nodes).forEach(key => {
                 const node = nodes[key];
-                if (promptState[key].filled) { 
-                    node.classList.add('node-active'); 
-                    node.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'; 
-                } else { 
-                    node.classList.remove('node-active'); 
-                    node.innerHTML = getIcon(key); 
+                if (promptState[key].filled) {
+                    node.classList.add('node-active');
+                    node.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                } else {
+                    node.classList.remove('node-active');
+                    node.innerHTML = getIcon(key);
                 }
             });
 
             if (promptState.inherit.filled && promptState.goal.filled) { l12.style.width = "100%"; l12.classList.add('flowing'); } else { l12.style.width = "0%"; l12.classList.remove('flowing'); }
             if (promptState.goal.filled && promptState.next.filled) { l23.style.width = "100%"; l23.classList.add('flowing'); } else { l23.style.width = "0%"; l23.classList.remove('flowing'); }
             if (promptState.inherit.filled && promptState.next.filled && !promptState.goal.filled) { cb.classList.remove('hidden'); cf.classList.add('curve-active'); } else { cb.classList.add('hidden'); cf.classList.remove('curve-active'); }
-            
+
             container.classList.toggle('hidden', !(promptState.inherit.filled || promptState.goal.filled || promptState.next.filled));
         }
 
@@ -643,7 +1309,7 @@
         function triggerDomainExpansion() {
             const card = document.getElementById('architecture-card');
             card.classList.add('converge-active');
-            showToast('領域展開中，萃取設定...');
+            showToast(t('toast_expanding'));
             setTimeout(() => {
                 const result = constructPrompt();
                 document.getElementById('result-content').innerText = result;
@@ -660,21 +1326,21 @@
             const svg = document.getElementById('tree-svg');
             container.innerHTML = "";
             svg.innerHTML = "";
-            
+
             const columns = { global: [], inherit: [], goal: [], kpis: [], next: [] };
-            
+
             // 處理全域設定節點 (如果有的話)
             let globalStr = [];
-            if(promptState.global.role) globalStr.push(`角色：${promptState.global.role}`);
-            if(promptState.global.tone) globalStr.push(`語氣：${promptState.global.tone}`);
-            if(globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: "System", highlight: true });
+            if (promptState.global.role) globalStr.push(`${t('tree_role_prefix')}${promptState.global.role}`);
+            if (promptState.global.tone) globalStr.push(`${t('tree_tone_prefix')}${promptState.global.tone}`);
+            if (globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: t('tree_system'), highlight: true });
 
-            if (promptState.inherit.filled) columns.inherit.push({ label: promptState.inherit.data.substring(0,30) + '...', type: "Context" });
+            if (promptState.inherit.filled) columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context') });
             if (promptState.goal.filled) {
-                if(promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0,30) + '...', type: "Target" });
-                promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0,25), type: "Constraint" }));
+                if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
+                promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') }));
             }
-            if (promptState.next.filled) columns.next.push({ label: promptState.next.data.substring(0,30) + '...', type: "Action" });
+            if (promptState.next.filled) columns.next.push({ label: promptState.next.data.substring(0, 30) + '...', type: t('tree_action') });
 
             // 繪製節點 DOM
             let colIndex = 0;
@@ -683,13 +1349,13 @@
                     const colDiv = document.createElement('div');
                     colDiv.className = "flex flex-col gap-6 items-center flex-1 z-10 min-w-[120px]";
                     colDiv.id = `tree-col-${colKey}`;
-                    
+
                     columns[colKey].forEach((s, i) => {
                         const node = document.createElement('div');
                         node.id = `tree-node-${colKey}-${i}`;
                         const isMain = s.type === 'Target' || s.highlight;
                         node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
-                        node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || '核心目標'}</div>`;
+                        node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || t('tree_core_goal')}</div>`;
                         colDiv.appendChild(node);
                     });
                     container.appendChild(colDiv);
@@ -701,31 +1367,31 @@
                 const drawLine = (id1, id2, isDash = false) => {
                     const el1 = document.getElementById(id1), el2 = document.getElementById(id2);
                     if (!el1 || !el2) return;
-                    
+
                     // 相對 svg 容器的座標計算
                     const svgRect = svg.getBoundingClientRect();
                     const rect1 = el1.getBoundingClientRect();
                     const rect2 = el2.getBoundingClientRect();
-                    
+
                     const x1 = rect1.right - svgRect.left;
-                    const y1 = rect1.top + (rect1.height/2) - svgRect.top;
+                    const y1 = rect1.top + (rect1.height / 2) - svgRect.top;
                     const x2 = rect2.left - svgRect.left;
-                    const y2 = rect2.top + (rect2.height/2) - svgRect.top;
-                    
+                    const y2 = rect2.top + (rect2.height / 2) - svgRect.top;
+
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     const cp1x = x1 + (x2 - x1) / 2;
                     path.setAttribute("d", `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`);
                     path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.4)" : "rgba(59, 130, 246, 0.4)");
                     path.setAttribute("stroke-width", "2");
-                    if(isDash) path.setAttribute("stroke-dasharray", "5,5");
+                    if (isDash) path.setAttribute("stroke-dasharray", "5,5");
                     path.setAttribute("fill", "none");
                     svg.appendChild(path);
                 };
 
                 // 連線邏輯
-                if(columns.global.length > 0 && columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
+                if (columns.global.length > 0 && columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
                 else if (columns.global.length > 0 && columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
-                
+
                 if (columns.inherit.length > 0 && columns.goal.length > 0) drawLine('tree-node-inherit-0', 'tree-node-goal-0');
                 if (columns.goal.length > 0) {
                     columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
@@ -734,8 +1400,8 @@
                 if (columns.kpis.length > 0 && columns.next.length > 0) {
                     columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
                 }
-                if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0){
-                     drawLine('tree-node-inherit-0', 'tree-node-next-0');
+                if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0) {
+                    drawLine('tree-node-inherit-0', 'tree-node-next-0');
                 }
             }, 150);
         }
@@ -743,30 +1409,31 @@
         // 核心 Prompt 組合邏輯
         function constructPrompt() {
             let p = "";
-            
+
             // 系統與全局設定
-            if (promptState.global.role || promptState.global.tone || promptState.global.language !== '繁體中文') {
-                p += `【系統與角色設定】\n`;
-                if(promptState.global.role) p += `- 扮演角色：${promptState.global.role}\n`;
-                if(promptState.global.tone) p += `- 語氣風格：${promptState.global.tone}\n`;
-                p += `- 輸出語言：${promptState.global.language}\n\n`;
+            const defaultLang = uiLangToOutputLang[currentUILang] || 'English';
+            if (promptState.global.role || promptState.global.tone || promptState.global.language !== defaultLang) {
+                p += `${t('prompt_system_title')}\n`;
+                if (promptState.global.role) p += `${t('prompt_role')}${promptState.global.role}\n`;
+                if (promptState.global.tone) p += `${t('prompt_tone')}${promptState.global.tone}\n`;
+                p += `${t('prompt_lang')}${promptState.global.language}\n\n`;
             }
 
-            if (promptState.inherit.filled) p += `### 既有背景與上下文 (Context)\n${promptState.inherit.data}\n\n`;
-            
+            if (promptState.inherit.filled) p += `${t('prompt_context')}\n${promptState.inherit.data}\n\n`;
+
             if (promptState.goal.filled) {
-                p += `### 核心目標 (Goal)\n${promptState.goal.data || "無抽象描述"}\n`;
+                p += `${t('prompt_goal')}\n${promptState.goal.data || t('prompt_no_desc')}\n`;
                 const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== "");
                 if (validKPIs.length > 0) {
-                    p += `\n【限制條件與具體要求】：\n`;
+                    p += `\n${t('prompt_constraints')}\n`;
                     validKPIs.forEach((k, i) => { p += `${i + 1}. ${k}\n`; });
                 }
                 p += `\n`;
             }
-            
-            if (promptState.next.filled) p += `### 下一步具體行動 (Action)\n${promptState.next.data}\n\n`;
-            
-            p += "---\n提示：請確實閱讀上述設定與上下文，並給出符合限制條件的最優產出。";
+
+            if (promptState.next.filled) p += `${t('prompt_action')}\n${promptState.next.data}\n\n`;
+
+            p += t('prompt_footer');
             return p;
         }
 
@@ -776,17 +1443,17 @@
             const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            
+
             // 產生含有日期的檔名
-            const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
             a.href = url;
             a.download = `AI_Prompt_${dateStr}.md`;
-            
+
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('Markdown 檔案已開始下載');
+            showToast(t('toast_md_download'));
         }
 
         // 歷史紀錄相關
@@ -803,12 +1470,12 @@
                     <div class="flex justify-between items-center mb-4">
                         <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">${item.date}</span>
                         <div class="flex gap-2">
-                            <button onclick="editHistoryItem(${item.id})" class="text-[10px] bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-3 py-1 rounded-lg border border-blue-500/30 font-bold transition">作為草稿載入</button>
-                            <button onclick="copyHistoryItem(${item.id})" class="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-3 py-1 rounded-lg border border-white/10 font-bold transition">複製</button>
+                            <button onclick="editHistoryItem(${item.id})" class="text-[10px] bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-3 py-1 rounded-lg border border-blue-500/30 font-bold transition">${t('history_load_draft')}</button>
+                            <button onclick="copyHistoryItem(${item.id})" class="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-3 py-1 rounded-lg border border-white/10 font-bold transition">${t('history_copy')}</button>
                         </div>
                     </div>
                     <div class="text-gray-400 text-sm font-mono whitespace-pre-wrap line-clamp-4 leading-relaxed">${item.content}</div>
-                </div>`).join('') : `<div class="text-center py-20 text-gray-500 italic">目前尚無歷史紀錄</div>`;
+                </div>`).join('') : `<div class="text-center py-20 text-gray-500 italic">${t('no_history')}</div>`;
             nextStep(5);
         }
 
@@ -817,42 +1484,66 @@
             if (item && item.state) {
                 promptState = JSON.parse(JSON.stringify(item.state));
                 // 確保舊紀錄兼容新資料結構
-                if(!promptState.global) promptState.global = { role: '', tone: '', language: '繁體中文' };
-                
+                if (!promptState.global) promptState.global = { role: '', tone: '', language: uiLangToOutputLang[currentUILang] || 'English' };
+
                 autoSaveDraft();
                 updateStatusTree();
                 const type = promptState.inherit.filled ? 'inherit' : (promptState.goal.filled ? 'goal' : 'next');
-                const label = type === 'inherit' ? '有繼承工作的需求嗎？' : (type === 'goal' ? '我的目標是...' : '接下來我想做的事');
+                const label = type === 'inherit' ? t('card_inherit_title') : (type === 'goal' ? t('card_goal_title') : t('card_next_title'));
                 handleSelection(type, label);
-                showToast('已將歷史紀錄載入草稿區');
+                showToast(t('toast_loaded_draft'));
             }
         }
 
         function copyHistoryItem(id) {
             const item = JSON.parse(localStorage.getItem('promptHistory') || "[]").find(h => h.id === id);
-            if (item) { copyText(item.content); showToast('內容已複製'); }
+            if (item) { copyText(item.content); showToast(t('toast_copied')); }
         }
 
-        function clearHistory() { if (confirm('確定要清空所有歷史紀錄嗎？')) { localStorage.removeItem('promptHistory'); viewHistory(); showToast('紀錄已清除'); } }
-        
-        function copyToClipboard() { 
-            copyText(document.getElementById('result-content').innerText); 
-            document.getElementById('copy-btn').innerText = "✅ 已複製"; 
-            setTimeout(() => document.getElementById('copy-btn').innerText = "📋 複製內容", 2000); 
+        function clearHistory() { if (confirm(t('confirm_clear_history'))) { localStorage.removeItem('promptHistory'); viewHistory(); showToast(t('toast_history_cleared')); } }
+
+        function copyToClipboard() {
+            copyText(document.getElementById('result-content').innerText);
+            document.getElementById('copy-btn').innerText = t('copied_label');
+            setTimeout(() => document.getElementById('copy-btn').innerText = t('copy_label'), 2000);
         }
-        
-        function copyText(text) { 
-            const temp = document.createElement('textarea'); 
-            temp.value = text; 
-            document.body.appendChild(temp); 
-            temp.select(); 
-            document.execCommand('copy'); 
-            document.body.removeChild(temp); 
+
+        function copyText(text) {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
         }
 
         // 專案經理級格式助手指令
         function copyHelperPrompt() {
-            const textToCopy = `請將我以下提供的「碎片化工作進度與思緒」，整理成一份結構清晰、適合讓下一個 AI Session 能夠瞬間讀懂並無縫接軌的 Markdown 交接文檔。
+            const helperPrompts = {
+                'en': `Please organize my "fragmented work progress and thoughts" below into a well-structured Markdown handover document that the next AI session can instantly understand and seamlessly continue from.
+
+Act as a professional project manager. Extract all necessary details and information from my messy content, and strictly follow the Markdown structure below for output:
+
+# [Generate based on content: Precise project/task name]
+
+## 1. Current Progress
+- [Summarize in bullet points: Core work completed so far]
+- [List: Key decisions or conclusions confirmed during the process]
+
+## 2. Key Context & Details
+- [Preserve: Important data, terms, code logic, or special conditions discussed]
+- [Consolidate: Any background info the next session must know, so I don't have to repeat myself]
+
+## 3. Pending Issues & Roadblocks
+- [Analyze: What difficulties or unresolved problems have been encountered?]
+- [Is there any missing information that needs to be supplemented?]
+
+## 4. Next Action Items
+- [Provide specific suggestions: What is the first thing to do when starting the next conversation?]
+
+---
+[Below is my current work content/brainstorming fragments, please organize them]:`,
+                'zh-TW': `請將我以下提供的「碎片化工作進度與思緒」，整理成一份結構清晰、適合讓下一個 AI Session 能夠瞬間讀懂並無縫接軌的 Markdown 交接文檔。
 
 請你扮演專業的專案經理，盡可能從我的雜亂內容中提取出所有需要的細節與資訊，並嚴格按照以下 Markdown 結構進行輸出：
 
@@ -874,17 +1565,43 @@
 - [請給出具體建議：下一次開啟新對話時，第一件該做的事情是什麼？]
 
 ---
-【以下是我目前的工作內容/腦力激盪碎片，請幫我整理】：`;
+【以下是我目前的工作內容/腦力激盪碎片，請幫我整理】：`,
+                'zh-CN': `请将我以下提供的「碎片化工作进度与思绪」，整理成一份结构清晰、适合让下一个 AI Session 能够瞬间读懂并无缝接轨的 Markdown 交接文档。
+
+请你扮演专业的项目经理，尽可能从我的杂乱内容中提取出所有需要的细节与信息，并严格按照以下 Markdown 结构进行输出：
+
+# [请你根据内容生成：精准的项目/任务名称]
+
+## 1. 目前进度摘要 (Current Progress)
+- [请条列式总结：目前已经完成的核心工作]
+- [请列出：过程中已经确认的重点决策或结论]
+
+## 2. 关键细节与上下文 (Key Context & Details)
+- [请保留：重要的数据、名词、程序逻辑或讨论过的特殊条件]
+- [请统整：任何下一个 Session 必须知道的背景信息，避免我重复解释]
+
+## 3. 待处理与卡关点 (Pending Issues & Roadblocks)
+- [请分析：目前遇到了什么困难或尚未解决的问题？]
+- [是否有缺漏的信息需要补充？]
+
+## 4. 下一步行动 (Next Action Items)
+- [请给出具体建议：下一次开启新对话时，第一件该做的事情是什么？]
+
+---
+【以下是我目前的工作内容/头脑风暴碎片，请帮我整理】：`
+            };
+            const textToCopy = helperPrompts[currentUILang] || helperPrompts['en'];
             copyText(textToCopy);
-            showToast('整理指令已複製，請貼給 AI 處理');
+            showToast(t('toast_helper_copied'));
         }
 
-        function showToast(msg) { 
-            const t = document.getElementById('toast'); 
-            t.innerText = msg; 
-            t.classList.remove('hidden'); 
-            setTimeout(() => t.classList.add('hidden'), 2500); 
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 2500);
         }
     </script>
 </body>
+
 </html>
