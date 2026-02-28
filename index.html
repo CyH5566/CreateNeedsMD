@@ -233,15 +233,16 @@
                 </div>
             </div>
 
+            <!-- ✨ 優化後的格式小助手 ✨ -->
             <div id="prompt-helper" class="helper-box p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex-1 text-center md:text-left">
                     <h4 class="text-blue-300 font-bold mb-1 flex items-center justify-center md:justify-start text-sm">
                         <span class="mr-2">💡</span> 格式助手
                     </h4>
-                    <p class="text-xs text-blue-100/60 leading-relaxed">請將此指令複製並貼給 AI，幫您把目前的成果整理成完美的 Markdown 格式再貼回下方。</p>
+                    <p class="text-xs text-blue-100/60 leading-relaxed">複製此指令貼給前一個 AI 助手，獲取能讓當前工作被完美繼承的 Markdown 內容。</p>
                 </div>
                 <div class="bg-black/30 px-4 py-3 rounded-xl border border-white/10 flex items-center w-full md:w-auto">
-                    <code id="helper-prompt-text" class="text-xs text-gray-300 truncate mr-4">請將內容整理成 Markdown 格式，包含 # 標題與 ## 細節內容。</code>
+                    <code id="helper-prompt-text" class="text-xs text-gray-300 truncate mr-4">請將目前工作的進度內容整理成 Markdown 格式...</code>
                     <button onclick="copyHelperPrompt()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-bold transition-all">
                         複製指令
                     </button>
@@ -426,7 +427,7 @@
                 const result = constructPrompt();
                 document.getElementById('result-content').innerText = result;
                 
-                // ✨ 儲存到歷史紀錄 (包含當前狀態備份) ✨
+                // 儲存到歷史紀錄 (包含當前狀態備份)
                 addToHistory(result, JSON.parse(JSON.stringify(promptState)));
                 
                 nextStep(3);
@@ -480,7 +481,7 @@
             nextStep(4);
         }
 
-        // ✨ 編輯歷史紀錄：還原內容並返回架構頁面 ✨
+        // 編輯歷史紀錄：還原內容並返回架構頁面
         function editHistoryItem(id) {
             let history = JSON.parse(localStorage.getItem('promptHistory') || "[]");
             const item = history.find(h => h.id === id);
@@ -529,8 +530,10 @@
             temp.select(); document.execCommand('copy'); document.body.removeChild(temp);
         }
 
+        // ✨ 更新後的複製助手指令 ✨
         function copyHelperPrompt() {
-            copyText("請將內容整理成 Markdown 格式，包含 # 標題與 ## 細節內容。");
+            const textToCopy = "請將目前工作的進度內容整理成 Markdown 格式，包含 # 標題與 ## 細節內容。盡可能包括需要的細節和資訊，以便於讓下一個session可以順利的繼承展開";
+            copyText(textToCopy);
             showToast('指令已複製');
         }
 
