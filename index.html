@@ -37,7 +37,6 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        /* 格式助手樣式優化 - 參照圖二 */
         .helper-box {
             background: rgba(59, 130, 246, 0.05);
             border: 1px dashed rgba(59, 130, 246, 0.4);
@@ -48,11 +47,10 @@
         }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         
         textarea::placeholder { white-space: pre-line; line-height: 1.6; }
 
-        /* 節點發光效果 */
         .node-active {
             box-shadow: 0 0 25px rgba(59, 130, 246, 0.6);
             border-color: rgba(59, 130, 246, 0.8) !important;
@@ -61,7 +59,6 @@
             transform: scale(1.1);
         }
         
-        /* 視覺路徑線 */
         .path-line {
             position: absolute;
             height: 2px;
@@ -107,8 +104,8 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
         
         .text-keep-all { word-break: keep-all; overflow-wrap: break-word; }
+        .text-normal-wrap { word-break: normal; overflow-wrap: anywhere; }
 
-        /* 樹狀圖樣式 */
         .tree-node {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -117,6 +114,7 @@
             position: relative;
             z-index: 10;
             min-width: 140px;
+            max-width: 200px;
             text-align: center;
             transition: all 0.3s ease;
         }
@@ -140,7 +138,17 @@
 
     <div class="fixed inset-0 bg-hero z-0"></div>
 
-    <main class="relative z-10 min-h-screen flex items-center justify-center px-6 py-12">
+    <!-- 頂部狀態列 (針對全域設定) -->
+    <header id="global-header" class="fixed top-0 left-0 w-full z-40 px-6 py-4 hidden fade-in">
+        <div class="max-w-6xl mx-auto flex justify-end items-center">
+            <button onclick="openSettingsModal()" class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold hover:bg-white/10 transition-all backdrop-blur-md">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                全域環境設定
+            </button>
+        </div>
+    </header>
+
+    <main class="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
         
         <!-- Step 0: 首頁 -->
         <section id="step-home" class="max-w-4xl text-center fade-in">
@@ -155,6 +163,17 @@
                 <span class="inline-block">透過視覺化模組引導，</span><span class="inline-block">自由組合您的需求</span><br class="hidden md:block">
                 <span class="inline-block">產出最懂您的 AI 指令</span>
             </p>
+            
+            <div id="draft-alert" class="hidden mb-8 max-w-md mx-auto bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-center justify-between text-left">
+                <div>
+                    <h4 class="text-yellow-400 font-bold text-sm">發現未完成的草稿</h4>
+                    <p class="text-yellow-100/60 text-xs mt-1">您有上次尚未生成的指令進度</p>
+                </div>
+                <button onclick="resumeDraft()" class="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-lg text-xs font-bold transition-all border border-yellow-500/30">
+                    恢復草稿
+                </button>
+            </div>
+
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <button onclick="freshStart()" class="group relative px-10 py-4 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 w-full sm:w-auto">
                     開始建構指令
@@ -178,7 +197,10 @@
                     <div class="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-colors">
                         <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 text-white">繼承背景</h3>
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-2xl font-bold mb-4 text-white">繼承背景</h3>
+                        <span id="badge-inherit" class="hidden text-[10px] bg-blue-500/20 text-blue-300 px-2 py-1 rounded border border-blue-500/30 font-bold">已填寫</span>
+                    </div>
                     <p class="text-gray-400 leading-relaxed text-sm">貼入過去的產出內容，讓 AI 了解目前進度</p>
                 </button>
 
@@ -186,7 +208,10 @@
                     <div class="w-14 h-14 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-500/30 transition-colors">
                         <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 text-white">核心目標</h3>
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-2xl font-bold mb-4 text-white">核心目標</h3>
+                        <span id="badge-goal" class="hidden text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded border border-emerald-500/30 font-bold">已填寫</span>
+                    </div>
                     <p class="text-gray-400 leading-relaxed text-sm">設定期望達成的最終結果與特定限制</p>
                 </button>
 
@@ -194,13 +219,16 @@
                     <div class="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-colors">
                         <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 text-white">下一步計畫</h3>
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-2xl font-bold mb-4 text-white">下一步計畫</h3>
+                        <span id="badge-next" class="hidden text-[10px] bg-purple-500/20 text-purple-300 px-2 py-1 rounded border border-purple-500/30 font-bold">已填寫</span>
+                    </div>
                     <p class="text-gray-400 leading-relaxed text-sm">明確指示 AI 接下來應該執行的具體動作</p>
                 </button>
             </div>
 
             <div id="status-tree-container" class="fade-in hidden">
-                <div id="architecture-card" class="max-w-3xl mx-auto glass-card p-12 rounded-[2.5rem] relative shadow-2xl">
+                <div id="architecture-card" class="max-w-3xl mx-auto glass-card p-12 rounded-[2.5rem] relative shadow-2xl overflow-hidden">
                     <svg id="bypass-curve-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
                         <defs>
                             <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(234, 179, 8, 0)" /><stop offset="50%" stop-color="rgba(250, 204, 21, 1)" /><stop offset="100%" stop-color="rgba(234, 179, 8, 0)" /></linearGradient>
@@ -210,7 +238,7 @@
                     </svg>
                     <div class="flex justify-between items-center mb-12">
                         <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Prompt 構成架構</h4>
-                        <button onclick="showConfirmModal()" class="text-xs text-red-400 hover:text-red-300 transition bg-red-400/10 px-3 py-1.5 rounded-lg border border-red-400/20 font-bold">重置所有進度</button>
+                        <button onclick="showConfirmModal()" class="text-xs text-red-400 hover:text-red-300 transition bg-red-400/10 px-3 py-1.5 rounded-lg border border-red-400/20 font-bold">重置進度</button>
                     </div>
                     <div class="flex items-center justify-between relative px-6 md:px-12">
                         <div class="path-line left-[60px] md:left-[84px] w-[calc(50%-48px)] md:w-[calc(50%-64px)]"><div id="line-1-2" class="path-progress"></div></div>
@@ -245,68 +273,74 @@
                 <div id="active-category" class="px-4 py-1 rounded-lg bg-white/10 border border-white/20 text-sm font-bold text-blue-300 tracking-wide uppercase">類別名稱</div>
             </div>
 
-            <!-- ✨ 格式助手區塊 (已參照圖二修復佈局) ✨ -->
-            <div id="prompt-helper" class="helper-box p-6 rounded-2xl mb-6 flex flex-row items-center justify-between gap-6 hidden">
-                <div class="flex-1">
+            <!-- ✨ 格式助手區塊 ✨ -->
+            <div id="prompt-helper" class="helper-box p-6 rounded-2xl mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hidden">
+                <div class="flex-1 min-w-0">
                     <div class="flex items-center text-blue-300 font-bold mb-1">
                         <span class="mr-2 text-base">💡</span>
                         <span class="text-sm">格式助手</span>
                     </div>
-                    <p class="text-xs text-blue-100/60 leading-relaxed">
-                        複製指令貼給 AI 幫您把碎片思緒整理成結構清晰的交接文檔
+                    <p class="text-xs text-blue-100/60 leading-relaxed text-normal-wrap">
+                        複製這段指令給 AI，幫您把碎片化的思緒或會議紀錄整理成結構清晰的交接文檔，再貼回此處。
                     </p>
                 </div>
-                <button onclick="copyHelperPrompt()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-5 py-2.5 rounded-xl font-bold transition-all whitespace-nowrap shadow-lg shadow-blue-500/20">
-                    複製完整指令
+                <button onclick="copyHelperPrompt()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-5 py-2.5 rounded-xl font-bold transition-all whitespace-nowrap shadow-lg shadow-blue-500/20 w-full md:w-auto">
+                    複製整理指令
                 </button>
             </div>
 
             <div class="input-area p-8 md:p-10 rounded-[2.5rem] shadow-2xl relative">
                 <div class="flex justify-between items-center mb-6">
                     <h2 id="input-prompt-title" class="text-xl font-bold">描述您的目標</h2>
-                    <button onclick="clearCurrentInput()" class="text-[10px] text-gray-500 hover:text-red-400 transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase font-bold tracking-tighter">清空編輯區</button>
+                    <button onclick="clearCurrentInput()" class="text-[10px] text-gray-500 hover:text-red-400 transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase font-bold tracking-tighter">清空內容</button>
                 </div>
 
                 <!-- 核心目標引導 -->
                 <div id="goal-helper" class="goal-helper-inline p-4 rounded-xl mb-6 flex flex-col items-start gap-1 hidden">
-                    <p class="text-[11px] text-yellow-100/60 leading-relaxed">
-                        目標應該是一個抽象又框架的東西？範圍很大但有包含到我們需要的<br>
-                        例如：<span class="text-yellow-400 italic">世界和平？</span> 或 <span class="text-yellow-400 italic">debug 某個東西？</span>
+                    <p class="text-[11px] text-yellow-100/60 leading-relaxed text-normal-wrap">
+                        描述整體的方向或期望結果。<br>
+                        例如：<span class="text-yellow-400 italic">開發一個註冊頁面</span> 或 <span class="text-yellow-400 italic">寫一篇關於 AI 發展的部落格文章</span>
                     </p>
                 </div>
                 
                 <div class="space-y-6">
-                    <textarea id="user-input" rows="12" class="w-full bg-black/20 border border-white/10 rounded-2xl p-6 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/5 transition-all placeholder:text-gray-700 font-mono leading-relaxed text-blue-50" placeholder="在此填寫內容"></textarea>
+                    <div class="relative">
+                        <textarea id="user-input" rows="12" oninput="handleInputContent()" class="w-full bg-black/20 border border-white/10 rounded-2xl p-6 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/5 transition-all placeholder:text-gray-700 font-mono leading-relaxed text-blue-50" placeholder="在此填寫內容"></textarea>
+                        <div id="char-count" class="absolute bottom-4 right-6 text-xs text-gray-600 font-mono">0 字</div>
+                    </div>
                     
+                    <!-- KPI 必要完成條件 -->
                     <div id="kpi-section" class="hidden fade-in space-y-4">
                         <div class="flex items-center justify-between border-t border-white/10 pt-6">
-                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center"><span class="mr-2">📊</span> 必要完成條件 (KPI)</h3>
-                            <button onclick="addKPI()" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-4 py-1.5 rounded-lg border border-blue-500/30 text-[10px] font-bold transition-all">+ 新增具體需求</button>
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center"><span class="mr-2">📊</span> 具體限制與要求 (KPI)</h3>
+                            <button onclick="addKPI()" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-4 py-1.5 rounded-lg border border-blue-500/30 text-[10px] font-bold transition-all">+ 新增條件</button>
                         </div>
                         <div id="kpi-list" class="space-y-3"></div>
                     </div>
                 </div>
                 
                 <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p class="text-[11px] text-gray-500 italic">※ 若要移除此組成部分，請清空內容後保存</p>
-                    <button onclick="saveAndProceed()" id="save-btn" class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg">儲存並返回</button>
+                    <p class="text-[11px] text-gray-500 italic">※ 系統會自動保存您的草稿</p>
+                    <button onclick="saveAndProceed()" id="save-btn" class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg">確認並返回</button>
                 </div>
             </div>
         </section>
 
-        <!-- Step 3: 術式解構路徑 -->
+        <!-- Step 3: 術式解構路徑 (動態樹狀圖) -->
         <section id="step-tree" class="max-w-6xl w-full hidden fade-in">
             <div class="text-center mb-12">
                 <div class="inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold tracking-widest uppercase mb-4">Structure Observation</div>
-                <h2 class="text-4xl font-bold">Prompt 結構路徑</h2>
+                <h2 class="text-4xl font-bold text-keep-all">Prompt 結構路徑分析</h2>
             </div>
-            <div class="glass-card p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-visible">
-                <svg id="tree-svg" class="tree-connector-svg"></svg>
-                <div id="tree-nodes-container" class="flex items-center gap-12 relative z-10 w-full justify-around flex-wrap"></div>
+            <div class="glass-card p-4 md:p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-x-auto">
+                <div class="min-w-[700px] w-full relative h-full flex items-center justify-center">
+                    <svg id="tree-svg" class="tree-connector-svg"></svg>
+                    <div id="tree-nodes-container" class="flex items-stretch gap-8 md:gap-12 relative z-10 w-full justify-around flex-nowrap py-10"></div>
+                </div>
             </div>
             <div class="mt-12 text-center">
                 <button onclick="nextStep(4)" class="group relative px-12 py-5 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all shadow-2xl shadow-blue-500/30">
-                    檢視合成結果
+                    檢視最終合成結果
                     <span class="inline-block ml-3 group-hover:translate-x-1 transition-transform">→</span>
                 </button>
             </div>
@@ -316,15 +350,17 @@
         <section id="step-result" class="max-w-4xl w-full hidden fade-in">
             <div class="text-center mb-8">
                 <div class="inline-block px-4 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold tracking-widest uppercase mb-4">Domain Expanded</div>
-                <h2 class="text-4xl font-bold">Prompt 合成完畢</h2>
+                <h2 class="text-4xl font-bold text-keep-all">Prompt 合成完畢</h2>
             </div>
-            <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden group">
+            <div class="glass-card p-8 md:p-10 rounded-[3rem] relative overflow-hidden group">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-yellow-400 to-blue-500"></div>
-                <div id="result-content" class="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto pr-4 font-mono custom-scrollbar">正在從領域中提取內容...</div>
-                <div class="mt-10 flex flex-wrap gap-4 justify-center">
-                    <button onclick="copyToClipboard()" id="copy-btn" class="flex-1 min-w-[200px] py-5 bg-blue-600 rounded-2xl font-bold text-sm tracking-widest hover:bg-blue-500 transition-all flex items-center justify-center shadow-xl">📋 複製完整 Prompt</button>
-                    <button onclick="viewHistory()" class="flex-1 min-w-[200px] py-5 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all">📜 查看歷史紀錄</button>
-                    <button onclick="nextStep(1)" class="flex-1 min-w-[200px] py-5 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all">↩️ 重新調整架構</button>
+                <div id="result-content" class="text-gray-300 text-[15px] md:text-lg leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto pr-4 font-mono custom-scrollbar">正在從領域中提取內容...</div>
+                
+                <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button onclick="copyToClipboard()" id="copy-btn" class="py-4 bg-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-500 transition-all flex items-center justify-center shadow-xl">📋 複製內容</button>
+                    <button onclick="downloadMarkdown()" class="py-4 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 rounded-2xl font-bold text-sm hover:bg-emerald-600/40 transition-all flex items-center justify-center">💾 匯出 .md</button>
+                    <button onclick="viewHistory()" class="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all text-sm">📜 歷史紀錄</button>
+                    <button onclick="nextStep(1)" class="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-gray-300 hover:bg-white/10 transition-all text-sm">↩️ 繼續編輯</button>
                 </div>
             </div>
         </section>
@@ -344,33 +380,119 @@
 
     </main>
 
+    <!-- UI 互動小工具 -->
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] hidden bg-gray-900 border border-white/10 px-8 py-3 rounded-full shadow-2xl fade-in text-xs font-bold tracking-wider text-blue-400"></div>
 
+    <!-- 全域設定 Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
+        <div class="bg-gray-900 border border-white/10 p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl relative">
+            <h3 class="text-2xl font-bold mb-6 text-white flex items-center"><svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>全域環境設定</h3>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2">AI 扮演角色 (Role / Persona)</label>
+                    <input type="text" id="setting-role" placeholder="例如：資深前端工程師、專業文案寫手..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder:text-gray-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2">語氣與風格 (Tone)</label>
+                    <input type="text" id="setting-tone" placeholder="例如：專業嚴謹、輕鬆幽默、簡明扼要..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder:text-gray-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2">輸出語言 (Language)</label>
+                    <select id="setting-lang" class="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-white">
+                        <option value="繁體中文">繁體中文 (Traditional Chinese)</option>
+                        <option value="English">English</option>
+                        <option value="日本語">日本語 (Japanese)</option>
+                        <option value="簡體中文">简体中文 (Simplified Chinese)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-4">
+                <button onclick="closeSettingsModal()" class="flex-1 py-3 rounded-xl bg-white/5 font-bold text-sm text-white hover:bg-white/10 transition-all">取消</button>
+                <button onclick="saveSettings()" class="flex-1 py-3 rounded-xl bg-blue-600 font-bold text-white text-sm hover:bg-blue-500 transition-all">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重置確認 Modal -->
     <div id="confirm-modal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/60 backdrop-blur-md p-6">
         <div class="bg-gray-900 border border-white/10 p-10 rounded-[2.5rem] max-w-sm w-full shadow-2xl text-center">
             <h3 class="text-xl font-bold mb-3 text-white">確定要重置嗎？</h3>
             <p class="text-gray-400 mb-10 text-xs">這將會清除目前正在編輯的所有模組內容</p>
             <div class="flex gap-4">
-                <button onclick="closeConfirmModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-sm text-white">取消</button>
-                <button onclick="confirmClearAll()" class="flex-1 py-4 rounded-2xl bg-red-600 font-bold text-white text-sm">確定重置</button>
+                <button onclick="closeConfirmModal()" class="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-sm text-white hover:bg-white/10">取消</button>
+                <button onclick="confirmClearAll()" class="flex-1 py-4 rounded-2xl bg-red-600 font-bold text-white text-sm hover:bg-red-500">確定重置</button>
             </div>
         </div>
     </div>
 
     <script>
+        // 狀態管理擴充了 global 設定
         let currentType = '';
-        let promptState = { inherit: { filled: false, data: "" }, goal: { filled: false, data: "", kpis: [] }, next: { filled: false, data: "" } };
+        const defaultState = { 
+            global: { role: '', tone: '', language: '繁體中文' },
+            inherit: { filled: false, data: "" }, 
+            goal: { filled: false, data: "", kpis: [] }, 
+            next: { filled: false, data: "" } 
+        };
+        let promptState = JSON.parse(JSON.stringify(defaultState));
         
+        // 頁面載入時檢查是否有未完成的草稿
+        window.onload = () => {
+            const draft = localStorage.getItem('promptDraft');
+            if (draft) {
+                const parsedDraft = JSON.parse(draft);
+                // 檢查是否有實質內容
+                if (parsedDraft.inherit.filled || parsedDraft.goal.filled || parsedDraft.next.filled) {
+                    document.getElementById('draft-alert').classList.remove('hidden');
+                }
+            }
+        };
+
+        function resumeDraft() {
+            const draft = localStorage.getItem('promptDraft');
+            if (draft) {
+                promptState = JSON.parse(draft);
+                document.getElementById('draft-alert').classList.add('hidden');
+                updateStatusTree();
+                nextStep(1);
+                showToast('已恢復上次的草稿進度');
+            }
+        }
+
+        function autoSaveDraft() {
+            localStorage.setItem('promptDraft', JSON.stringify(promptState));
+        }
+
+        function clearDraft() {
+            localStorage.removeItem('promptDraft');
+        }
+
         function nextStep(step) {
-            const sections = { 0: document.getElementById('step-home'), 1: document.getElementById('step-selection'), 2: document.getElementById('step-input'), 3: document.getElementById('step-tree'), 4: document.getElementById('step-result'), 5: document.getElementById('step-history') };
+            const sections = { 
+                0: document.getElementById('step-home'), 
+                1: document.getElementById('step-selection'), 
+                2: document.getElementById('step-input'), 
+                3: document.getElementById('step-tree'), 
+                4: document.getElementById('step-result'), 
+                5: document.getElementById('step-history') 
+            };
             Object.values(sections).forEach(section => section.classList.add('hidden'));
             sections[step].classList.remove('hidden');
+            
+            // 處理全局 Header 的顯示
+            const header = document.getElementById('global-header');
+            if(step === 1 || step === 2) header.classList.remove('hidden');
+            else header.classList.add('hidden');
+
             if (step === 1) updateStatusTree();
             if (step === 3) renderStructureTree();
         }
 
         function freshStart() {
-            promptState = { inherit: { filled: false, data: "" }, goal: { filled: false, data: "", kpis: [] }, next: { filled: false, data: "" } };
+            promptState = JSON.parse(JSON.stringify(defaultState));
+            clearDraft();
             updateStatusTree();
             nextStep(1);
         }
@@ -385,43 +507,102 @@
             
             document.getElementById('active-category').innerText = label;
             textarea.value = promptState[type].data;
+            handleInputContent(); // 更新字數
+            
             if (type === 'goal') {
-                textarea.rows = 1; inputTitle.innerText = "描述您的目標"; goalHelper.classList.remove('hidden'); kpiSection.classList.remove('hidden'); formatHelper.classList.add('hidden'); renderKPIs();
+                textarea.rows = 4; // 目標描述不用太長
+                inputTitle.innerText = "描述您的目標與方向"; 
+                goalHelper.classList.remove('hidden'); 
+                kpiSection.classList.remove('hidden'); 
+                formatHelper.classList.add('hidden'); 
+                renderKPIs();
             } else {
-                textarea.rows = 12; inputTitle.innerText = "描述您的內容"; goalHelper.classList.add('hidden'); kpiSection.classList.add('hidden'); formatHelper.classList.toggle('hidden', type !== 'inherit');
+                textarea.rows = 12; 
+                inputTitle.innerText = type === 'inherit' ? "貼上背景資訊或既有內容" : "描述具體的下一步行動"; 
+                goalHelper.classList.add('hidden'); 
+                kpiSection.classList.add('hidden'); 
+                formatHelper.classList.toggle('hidden', type !== 'inherit');
             }
             nextStep(2);
         }
 
+        function handleInputContent() {
+            const val = document.getElementById('user-input').value;
+            document.getElementById('char-count').innerText = `${val.length} 字`;
+            // 即時更新草稿
+            if(currentType === 'goal') {
+                promptState.goal.data = val;
+            } else {
+                promptState[currentType].data = val;
+            }
+            autoSaveDraft();
+        }
+
+        // --- 全域設定 Modal 邏輯 ---
+        function openSettingsModal() {
+            document.getElementById('setting-role').value = promptState.global.role || '';
+            document.getElementById('setting-tone').value = promptState.global.tone || '';
+            document.getElementById('setting-lang').value = promptState.global.language || '繁體中文';
+            document.getElementById('settings-modal').classList.add('modal-active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('modal-active');
+        }
+
+        function saveSettings() {
+            promptState.global.role = document.getElementById('setting-role').value.trim();
+            promptState.global.tone = document.getElementById('setting-tone').value.trim();
+            promptState.global.language = document.getElementById('setting-lang').value;
+            autoSaveDraft();
+            closeSettingsModal();
+            showToast('全域設定已儲存');
+        }
+
+        // --- KPI 邏輯 ---
         function renderKPIs() {
             const list = document.getElementById('kpi-list');
             list.innerHTML = promptState.goal.kpis.map((kpi, index) => `
-                <div class="flex gap-2 fade-in">
-                    <input type="text" value="${kpi}" oninput="updateKPIValue(${index}, this.value)" placeholder="具體需求項目" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-blue-100">
-                    <button onclick="removeKPI(${index})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-3 rounded-xl border border-red-500/20"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <div class="flex gap-2 fade-in group">
+                    <input type="text" value="${kpi}" oninput="updateKPIValue(${index}, this.value)" placeholder="具體需求、格式限制或必須包含的要點" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-blue-100 font-mono">
+                    <button onclick="removeKPI(${index})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-3 rounded-xl border border-red-500/20 transition-all opacity-50 group-hover:opacity-100"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 </div>
             `).join('');
         }
 
-        function addKPI() { promptState.goal.kpis.push(""); renderKPIs(); }
-        function updateKPIValue(index, val) { promptState.goal.kpis[index] = val; }
-        function removeKPI(index) { promptState.goal.kpis.splice(index, 1); renderKPIs(); }
-        function clearCurrentInput() { document.getElementById('user-input').value = ''; if (currentType === 'goal') promptState.goal.kpis = []; renderKPIs(); showToast('編輯區已清空'); }
+        function addKPI() { promptState.goal.kpis.push(""); renderKPIs(); autoSaveDraft(); }
+        function updateKPIValue(index, val) { promptState.goal.kpis[index] = val; autoSaveDraft(); }
+        function removeKPI(index) { promptState.goal.kpis.splice(index, 1); renderKPIs(); autoSaveDraft(); }
+        
+        function clearCurrentInput() { 
+            document.getElementById('user-input').value = ''; 
+            handleInputContent();
+            if (currentType === 'goal') {
+                promptState.goal.kpis = []; 
+                renderKPIs(); 
+            }
+            autoSaveDraft();
+            showToast('內容已清空'); 
+        }
+
         function showConfirmModal() { document.getElementById('confirm-modal').classList.add('modal-active'); }
         function closeConfirmModal() { document.getElementById('confirm-modal').classList.remove('modal-active'); }
-        function confirmClearAll() { freshStart(); closeConfirmModal(); showToast('架構已重置'); }
+        function confirmClearAll() { freshStart(); closeConfirmModal(); showToast('架構已完全重置'); }
 
         function saveAndProceed() {
             const content = document.getElementById('user-input').value.trim();
             if (currentType === 'goal') {
-                promptState.goal.filled = content !== "" || promptState.goal.kpis.some(k => k.trim() !== "");
+                const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== "");
+                promptState.goal.kpis = validKPIs; // 清除空白的KPI
+                promptState.goal.filled = content !== "" || validKPIs.length > 0;
                 promptState.goal.data = content;
             } else {
                 promptState[currentType].filled = content !== "";
                 promptState[currentType].data = content;
             }
-            showToast(promptState[currentType].filled ? '進度已保存' : '模塊已移除');
-            setTimeout(() => nextStep(1), 400);
+            autoSaveDraft();
+            showToast(promptState[currentType].filled ? '模組已保存' : '模組已移除');
+            setTimeout(() => nextStep(1), 300);
         }
 
         function updateStatusTree() {
@@ -429,14 +610,27 @@
             const nodes = { inherit: document.getElementById('node-inherit'), goal: document.getElementById('node-goal'), next: document.getElementById('node-next') };
             const l12 = document.getElementById('line-1-2'), l23 = document.getElementById('line-2-3');
             const cb = document.getElementById('curve-base'), cf = document.getElementById('curve-flow');
+            
+            // 更新卡片上的「已填寫」標籤
+            document.getElementById('badge-inherit').classList.toggle('hidden', !promptState.inherit.filled);
+            document.getElementById('badge-goal').classList.toggle('hidden', !promptState.goal.filled);
+            document.getElementById('badge-next').classList.toggle('hidden', !promptState.next.filled);
+
             Object.keys(nodes).forEach(key => {
                 const node = nodes[key];
-                if (promptState[key].filled) { node.classList.add('node-active'); node.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
-                else { node.classList.remove('node-active'); node.innerHTML = getIcon(key); }
+                if (promptState[key].filled) { 
+                    node.classList.add('node-active'); 
+                    node.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'; 
+                } else { 
+                    node.classList.remove('node-active'); 
+                    node.innerHTML = getIcon(key); 
+                }
             });
+
             if (promptState.inherit.filled && promptState.goal.filled) { l12.style.width = "100%"; l12.classList.add('flowing'); } else { l12.style.width = "0%"; l12.classList.remove('flowing'); }
             if (promptState.goal.filled && promptState.next.filled) { l23.style.width = "100%"; l23.classList.add('flowing'); } else { l23.style.width = "0%"; l23.classList.remove('flowing'); }
             if (promptState.inherit.filled && promptState.next.filled && !promptState.goal.filled) { cb.classList.remove('hidden'); cf.classList.add('curve-active'); } else { cb.classList.add('hidden'); cf.classList.remove('curve-active'); }
+            
             container.classList.toggle('hidden', !(promptState.inherit.filled || promptState.goal.filled || promptState.next.filled));
         }
 
@@ -449,87 +643,153 @@
         function triggerDomainExpansion() {
             const card = document.getElementById('architecture-card');
             card.classList.add('converge-active');
-            showToast('領域展開中...');
+            showToast('領域展開中，萃取設定...');
             setTimeout(() => {
                 const result = constructPrompt();
                 document.getElementById('result-content').innerText = result;
                 addToHistory(result, JSON.parse(JSON.stringify(promptState)));
+                clearDraft(); // 生成成功後清空草稿
                 nextStep(3);
                 card.classList.remove('converge-active');
             }, 900);
         }
 
+        // 重新撰寫樹狀圖渲染邏輯，更穩定適應內容
         function renderStructureTree() {
             const container = document.getElementById('tree-nodes-container');
             const svg = document.getElementById('tree-svg');
             container.innerHTML = "";
             svg.innerHTML = "";
-            const columns = { inherit: [], goal: [], kpis: [], next: [] };
-            if (promptState.inherit.filled) columns.inherit.push({ label: "繼承背景", type: "inherit" });
-            if (promptState.goal.filled) {
-                columns.goal.push({ label: promptState.goal.data || "核心目標", type: "goal" });
-                promptState.goal.kpis.filter(k => k.trim() !== "").forEach(k => columns.kpis.push({ label: k, type: "kpi" }));
-            }
-            if (promptState.next.filled) columns.next.push({ label: "下一步計畫", type: "next" });
+            
+            const columns = { global: [], inherit: [], goal: [], kpis: [], next: [] };
+            
+            // 處理全域設定節點 (如果有的話)
+            let globalStr = [];
+            if(promptState.global.role) globalStr.push(`角色：${promptState.global.role}`);
+            if(promptState.global.tone) globalStr.push(`語氣：${promptState.global.tone}`);
+            if(globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: "System", highlight: true });
 
+            if (promptState.inherit.filled) columns.inherit.push({ label: promptState.inherit.data.substring(0,30) + '...', type: "Context" });
+            if (promptState.goal.filled) {
+                if(promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0,30) + '...', type: "Target" });
+                promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0,25), type: "Constraint" }));
+            }
+            if (promptState.next.filled) columns.next.push({ label: promptState.next.data.substring(0,30) + '...', type: "Action" });
+
+            // 繪製節點 DOM
+            let colIndex = 0;
             Object.keys(columns).forEach(colKey => {
                 if (columns[colKey].length > 0) {
                     const colDiv = document.createElement('div');
-                    colDiv.className = "flex flex-col gap-6 items-center";
+                    colDiv.className = "flex flex-col gap-6 items-center flex-1 z-10 min-w-[120px]";
+                    colDiv.id = `tree-col-${colKey}`;
+                    
                     columns[colKey].forEach((s, i) => {
                         const node = document.createElement('div');
                         node.id = `tree-node-${colKey}-${i}`;
-                        node.className = `tree-node ${s.type === 'goal' ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
-                        node.innerHTML = `<div class="text-[10px] uppercase tracking-widest opacity-50 mb-1">${s.type}</div><div class="text-xs font-bold line-clamp-2">${s.label}</div>`;
+                        const isMain = s.type === 'Target' || s.highlight;
+                        node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
+                        node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || '核心目標'}</div>`;
                         colDiv.appendChild(node);
                     });
                     container.appendChild(colDiv);
                 }
             });
-            setTimeout(() => drawTreeConnections(columns), 100);
+
+            // 延遲繪製連線確保 DOM 尺寸已計算
+            setTimeout(() => {
+                const drawLine = (id1, id2, isDash = false) => {
+                    const el1 = document.getElementById(id1), el2 = document.getElementById(id2);
+                    if (!el1 || !el2) return;
+                    
+                    // 相對 svg 容器的座標計算
+                    const svgRect = svg.getBoundingClientRect();
+                    const rect1 = el1.getBoundingClientRect();
+                    const rect2 = el2.getBoundingClientRect();
+                    
+                    const x1 = rect1.right - svgRect.left;
+                    const y1 = rect1.top + (rect1.height/2) - svgRect.top;
+                    const x2 = rect2.left - svgRect.left;
+                    const y2 = rect2.top + (rect2.height/2) - svgRect.top;
+                    
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    const cp1x = x1 + (x2 - x1) / 2;
+                    path.setAttribute("d", `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`);
+                    path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.4)" : "rgba(59, 130, 246, 0.4)");
+                    path.setAttribute("stroke-width", "2");
+                    if(isDash) path.setAttribute("stroke-dasharray", "5,5");
+                    path.setAttribute("fill", "none");
+                    svg.appendChild(path);
+                };
+
+                // 連線邏輯
+                if(columns.global.length > 0 && columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
+                else if (columns.global.length > 0 && columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
+                
+                if (columns.inherit.length > 0 && columns.goal.length > 0) drawLine('tree-node-inherit-0', 'tree-node-goal-0');
+                if (columns.goal.length > 0) {
+                    columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
+                    if (columns.kpis.length === 0 && columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
+                }
+                if (columns.kpis.length > 0 && columns.next.length > 0) {
+                    columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
+                }
+                if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0){
+                     drawLine('tree-node-inherit-0', 'tree-node-next-0');
+                }
+            }, 150);
         }
 
-        function drawTreeConnections(columns) {
-            const svg = document.getElementById('tree-svg');
-            const drawLine = (id1, id2) => {
-                const el1 = document.getElementById(id1), el2 = document.getElementById(id2);
-                if (!el1 || !el2) return;
-                const rect1 = el1.getBoundingClientRect(), rect2 = el2.getBoundingClientRect(), svgRect = svg.getBoundingClientRect();
-                const x1 = rect1.right - svgRect.left, y1 = rect1.top + rect1.height/2 - svgRect.top;
-                const x2 = rect2.left - svgRect.left, y2 = rect2.top + rect2.height/2 - svgRect.top;
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                const cp1x = x1 + (x2 - x1) / 2;
-                path.setAttribute("d", `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`);
-                path.setAttribute("stroke", "rgba(59, 130, 246, 0.3)");
-                path.setAttribute("stroke-width", "1.5");
-                path.setAttribute("fill", "none");
-                svg.appendChild(path);
-            };
-            if (columns.inherit.length > 0 && columns.goal.length > 0) drawLine('tree-node-inherit-0', 'tree-node-goal-0');
-            if (columns.goal.length > 0) {
-                columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
-                if (columns.kpis.length === 0 && columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
-            }
-            if (columns.kpis.length > 0 && columns.next.length > 0) columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
-        }
-
+        // 核心 Prompt 組合邏輯
         function constructPrompt() {
             let p = "";
-            if (promptState.inherit.filled) p += `### 繼承背景\n${promptState.inherit.data}\n\n`;
+            
+            // 系統與全局設定
+            if (promptState.global.role || promptState.global.tone || promptState.global.language !== '繁體中文') {
+                p += `【系統與角色設定】\n`;
+                if(promptState.global.role) p += `- 扮演角色：${promptState.global.role}\n`;
+                if(promptState.global.tone) p += `- 語氣風格：${promptState.global.tone}\n`;
+                p += `- 輸出語言：${promptState.global.language}\n\n`;
+            }
+
+            if (promptState.inherit.filled) p += `### 既有背景與上下文 (Context)\n${promptState.inherit.data}\n\n`;
+            
             if (promptState.goal.filled) {
-                p += `### 核心目標\n${promptState.goal.data || "無抽象描述"}\n`;
+                p += `### 核心目標 (Goal)\n${promptState.goal.data || "無抽象描述"}\n`;
                 const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== "");
                 if (validKPIs.length > 0) {
-                    p += `\n【必要完成條件 / KPI】：\n`;
-                    validKPIs.forEach((k, i) => { p += `${i + 1} ${k}\n`; });
+                    p += `\n【限制條件與具體要求】：\n`;
+                    validKPIs.forEach((k, i) => { p += `${i + 1}. ${k}\n`; });
                 }
                 p += `\n`;
             }
-            if (promptState.next.filled) p += `### 下一步計畫\n${promptState.next.data}\n\n`;
-            p += "---\n提示：請基於上述架構，以最精準的邏輯執行指令";
+            
+            if (promptState.next.filled) p += `### 下一步具體行動 (Action)\n${promptState.next.data}\n\n`;
+            
+            p += "---\n提示：請確實閱讀上述設定與上下文，並給出符合限制條件的最優產出。";
             return p;
         }
 
+        // 下載 Markdown 檔案功能
+        function downloadMarkdown() {
+            const content = document.getElementById('result-content').innerText;
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            // 產生含有日期的檔名
+            const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+            a.href = url;
+            a.download = `AI_Prompt_${dateStr}.md`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Markdown 檔案已開始下載');
+        }
+
+        // 歷史紀錄相關
         function addToHistory(prompt, stateSnapshot) {
             let history = JSON.parse(localStorage.getItem('promptHistory') || "[]");
             history.unshift({ id: Date.now(), date: new Date().toLocaleString(), content: prompt, state: stateSnapshot });
@@ -540,9 +800,13 @@
             const list = document.getElementById('history-list'), history = JSON.parse(localStorage.getItem('promptHistory') || "[]");
             list.innerHTML = history.length ? history.map(item => `
                 <div class="glass-card p-6 rounded-2xl relative border border-white/5">
-                    <div class="flex justify-between items-center mb-4"><span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">${item.date}</span>
-                    <div class="flex gap-2"><button onclick="editHistoryItem(${item.id})" class="text-[10px] bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-3 py-1 rounded-lg border border-blue-500/30 font-bold">編輯</button>
-                    <button onclick="copyHistoryItem(${item.id})" class="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-3 py-1 rounded-lg border border-white/10 font-bold">複製</button></div></div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">${item.date}</span>
+                        <div class="flex gap-2">
+                            <button onclick="editHistoryItem(${item.id})" class="text-[10px] bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-3 py-1 rounded-lg border border-blue-500/30 font-bold transition">作為草稿載入</button>
+                            <button onclick="copyHistoryItem(${item.id})" class="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-3 py-1 rounded-lg border border-white/10 font-bold transition">複製</button>
+                        </div>
+                    </div>
                     <div class="text-gray-400 text-sm font-mono whitespace-pre-wrap line-clamp-4 leading-relaxed">${item.content}</div>
                 </div>`).join('') : `<div class="text-center py-20 text-gray-500 italic">目前尚無歷史紀錄</div>`;
             nextStep(5);
@@ -550,7 +814,18 @@
 
         function editHistoryItem(id) {
             const item = JSON.parse(localStorage.getItem('promptHistory') || "[]").find(h => h.id === id);
-            if (item && item.state) { promptState = JSON.parse(JSON.stringify(item.state)); updateStatusTree(); handleSelection('goal', '我的目標是...'); }
+            if (item && item.state) {
+                promptState = JSON.parse(JSON.stringify(item.state));
+                // 確保舊紀錄兼容新資料結構
+                if(!promptState.global) promptState.global = { role: '', tone: '', language: '繁體中文' };
+                
+                autoSaveDraft();
+                updateStatusTree();
+                const type = promptState.inherit.filled ? 'inherit' : (promptState.goal.filled ? 'goal' : 'next');
+                const label = type === 'inherit' ? '有繼承工作的需求嗎？' : (type === 'goal' ? '我的目標是...' : '接下來我想做的事');
+                handleSelection(type, label);
+                showToast('已將歷史紀錄載入草稿區');
+            }
         }
 
         function copyHistoryItem(id) {
@@ -559,9 +834,23 @@
         }
 
         function clearHistory() { if (confirm('確定要清空所有歷史紀錄嗎？')) { localStorage.removeItem('promptHistory'); viewHistory(); showToast('紀錄已清除'); } }
-        function copyToClipboard() { copyText(document.getElementById('result-content').innerText); document.getElementById('copy-btn').innerText = "✅ 已複製"; setTimeout(() => document.getElementById('copy-btn').innerText = "📋 複製完整 Prompt", 2000); }
-        function copyText(text) { const temp = document.createElement('textarea'); temp.value = text; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); document.body.removeChild(temp); }
+        
+        function copyToClipboard() { 
+            copyText(document.getElementById('result-content').innerText); 
+            document.getElementById('copy-btn').innerText = "✅ 已複製"; 
+            setTimeout(() => document.getElementById('copy-btn').innerText = "📋 複製內容", 2000); 
+        }
+        
+        function copyText(text) { 
+            const temp = document.createElement('textarea'); 
+            temp.value = text; 
+            document.body.appendChild(temp); 
+            temp.select(); 
+            document.execCommand('copy'); 
+            document.body.removeChild(temp); 
+        }
 
+        // 專案經理級格式助手指令
         function copyHelperPrompt() {
             const textToCopy = `請將我以下提供的「碎片化工作進度與思緒」，整理成一份結構清晰、適合讓下一個 AI Session 能夠瞬間讀懂並無縫接軌的 Markdown 交接文檔。
 
@@ -587,10 +876,15 @@
 ---
 【以下是我目前的工作內容/腦力激盪碎片，請幫我整理】：`;
             copyText(textToCopy);
-            showToast('專案經理指令已複製');
+            showToast('整理指令已複製，請貼給 AI 處理');
         }
 
-        function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2500); }
+        function showToast(msg) { 
+            const t = document.getElementById('toast'); 
+            t.innerText = msg; 
+            t.classList.remove('hidden'); 
+            setTimeout(() => t.classList.add('hidden'), 2500); 
+        }
     </script>
 </body>
 </html>
