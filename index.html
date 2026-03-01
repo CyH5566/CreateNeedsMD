@@ -1815,45 +1815,92 @@
             });
 
             // 延遲繪製連線確保 DOM 尺寸已計算
+            // 延遲繪製連線確保 DOM 尺寸已計算
             setTimeout(() => {
-                const drawLine = (id1, id2, isDash = false, weightText = null) => {
+                // options: { isDash, weightText, anchorStart: 'right'|'bottom', anchorEnd: 'left', reverseAnim: false }
+                const drawLine = (id1, id2, options = {}) => {
                     const el1 = document.getElementById(id1), el2 = document.getElementById(id2);
                     if (!el1 || !el2 || el1.style.opacity === "0" || el2.style.opacity === "0") return;
+
+                    const { isDash = false, weightText = null, anchorStart = 'right', anchorEnd = 'left', reverseAnim = false } = options;
 
                     // 相對 svg 容器的座標計算
                     const svgRect = svg.getBoundingClientRect();
                     const rect1 = el1.getBoundingClientRect();
                     const rect2 = el2.getBoundingClientRect();
 
-                    const x1 = rect1.right - svgRect.left;
-                    const y1 = rect1.top + (rect1.height / 2) - svgRect.top;
-                    const x2 = rect2.left - svgRect.left;
-                    const y2 = rect2.top + (rect2.height / 2) - svgRect.top;
+                    // 決定起點位置
+                    let x1, y1;
+                    if (anchorStart === 'bottom') {
+                        x1 = rect1.left + (rect1.width / 2) - svgRect.left;
+                        y1 = rect1.bottom - svgRect.top;
+                    } else { // default 'right'
+                        x1 = rect1.right - svgRect.left;
+                        y1 = rect1.top + (rect1.height / 2) - svgRect.top;
+                    }
 
-                    // 若 Y 軸極為接近 (例如誤差 < 2px)，視為完美水平，以避免 Bezier 出現微小曲度
-                    const isHorizontal = Math.abs(y1 - y2) < 2;
+                    // 決定終點位置
+                    let x2, y2;
+                    if (anchorEnd === 'left') {
+                        x2 = rect2.left - svgRect.left;
+                        y2 = rect2.top + (rect2.height / 2) - svgRect.top;
+                    } else {
+                        x2 = rect2.left - svgRect.left;
+                        y2 = rect2.top + (rect2.height / 2) - svgRect.top; // default left for now
+                    }
+
+                    const isHorizontal = Math.abs(y1 - y2) < 2 && anchorStart === 'right' && anchorEnd === 'left';
 
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     let d = "";
-                    const cp1x = x1 + (x2 - x1) / 2;
+
+                    // Bezier 曲線的控制點邏輯
+                    let cp1x, cp1y, cp2x, cp2y, midX, midY;
+
                     if (isHorizontal) {
                         d = `M ${x1} ${y1} L ${x2} ${y2}`;
+                        midX = x1 + (x2 - x1) / 2;
+                        midY = y1;
                     } else {
-                        d = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`;
+                        if (anchorStart === 'bottom') {
+                            // 從底部出來，往下走一段再轉向右
+                            cp1x = x1;
+                            cp1y = y1 + Math.abs(y2 - y1) / 2;
+                            cp2x = x2 - 40; // 靠近終點左側
+                            cp2y = y2;
+                        } else {
+                            // 從右側出來，往右走一段再轉向
+                            cp1x = x1 + (x2 - x1) / 2;
+                            cp1y = y1;
+                            cp2x = cp1x;
+                            cp2y = y2;
+                        }
+                        d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+                        // 簡單估算文字的中心點
+                        midX = x1 + (x2 - x1) / 2;
+                        midY = y1 + (y2 - y1) / 2;
                     }
+
                     path.setAttribute("d", d);
                     path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.4)" : "rgba(59, 130, 246, 0.4)");
                     path.setAttribute("stroke-width", "2");
                     path.setAttribute("fill", "none");
                     path.setAttribute("stroke-linecap", "round");
 
-                    // 標三重虛線動畫
+                    // 流動動畫 (虛線)
                     path.setAttribute("stroke-dasharray", "8,6");
                     const animDur = isDash ? "1.5s" : "2.5s";
                     const animate = document.createElementNS("http://www.w3.org/2000/svg", "animate");
                     animate.setAttribute("attributeName", "stroke-dashoffset");
-                    animate.setAttribute("from", "28");
-                    animate.setAttribute("to", "0");
+
+                    if (reverseAnim) {
+                        animate.setAttribute("from", "0");
+                        animate.setAttribute("to", "28");
+                    } else {
+                        animate.setAttribute("from", "28");
+                        animate.setAttribute("to", "0");
+                    }
+
                     animate.setAttribute("dur", animDur);
                     animate.setAttribute("repeatCount", "indefinite");
                     path.appendChild(animate);
@@ -1861,11 +1908,11 @@
                     svg.appendChild(path);
 
                     if (weightText) {
-                        const midX = cp1x;
-                        const midY = y1 + (y2 - y1) / 2 - 6; // 稍微在線上偏上一點
+                        const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+
                         text.setAttribute("x", midX);
-                        text.setAttribute("y", midY);
+                        text.setAttribute("y", midY - 6);
                         text.setAttribute("fill", isDash ? "rgba(234, 179, 8, 0.9)" : "rgba(147, 197, 253, 0.9)");
                         text.setAttribute("font-size", "10");
                         text.setAttribute("font-weight", "bold");
@@ -1883,47 +1930,56 @@
                 if (columns.global.length > 0) {
                     let globalOutCount = (columns.inherit.length > 0 ? 1 : 0) + (columns.goal.length > 0 && columns.inherit.length === 0 ? 1 : 0);
                     const weight = globalOutCount > 0 ? `${Math.round(100 / globalOutCount)}%` : '';
-                    if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true, weight);
-                    else if (columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true, weight);
+                    if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', { isDash: true, weightText: weight });
+                    else if (columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', { isDash: true, weightText: weight });
                 }
 
                 // inherit → goal (主線)
                 if (columns.inherit.length > 0 && columns.goal.length > 0) {
-                    drawLine('tree-node-inherit-0', 'tree-node-goal-0', false, '100%');
+                    drawLine('tree-node-inherit-0', 'tree-node-goal-0', { weightText: '100%' });
                 }
 
-                // goal → kpis and next
+                // goal and next and kpis
                 if (columns.goal.length > 0) {
-                    let branches = 0;
-                    if (columns.next.length > 0) branches++; // 主線 Action
                     const realKpis = columns.kpis.filter(k => !k.isSpacer);
-                    branches += realKpis.length; // 支線 Constraints
 
-                    const weight = branches > 0 ? `${Math.round(100 / branches)}%` : null;
+                    // 1. Goal (Right) -> Action (Left) 主線 (逆向流動：Action 影響 Goal)
+                    if (columns.next.length > 0) {
+                        // Action 作為全局影響，流動方向反轉從 Action 至 Goal
+                        // 視覺上仍是 Goal 畫線到 Action，但動畫反向
+                        drawLine('tree-node-goal-0', 'tree-node-next-0', { weightText: '100%', reverseAnim: true });
+                    }
 
-                    // 目標直接連接到主行動 (保持水平主線)
-                    if (columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0', false, weight);
-
-                    // 目標發散到所有實際 KPI 限制
-                    columns.kpis.forEach((k, i) => {
-                        if (!k.isSpacer) drawLine('tree-node-goal-0', `tree-node-kpis-${i}`, true, weight);
-                    });
+                    // 2. Goal (Bottom) -> Constraints (Left) 支線
+                    if (realKpis.length > 0) {
+                        const bottomWeight = `${Math.round(100 / realKpis.length)}%`;
+                        columns.kpis.forEach((k, i) => {
+                            if (!k.isSpacer) {
+                                drawLine('tree-node-goal-0', `tree-node-kpis-${i}`, {
+                                    isDash: true,
+                                    weightText: bottomWeight,
+                                    anchorStart: 'bottom',
+                                    anchorEnd: 'left'
+                                });
+                            }
+                        });
+                    }
                 }
 
                 // kpis → next (kpi-actions only)
                 if (columns.kpis.length > 0 && columns.next.length > 0) {
                     // KPI 對應到具體的 Plan
-                    // kpis[1] 對應 next[1], kpis[2] 對應 next[2] （因為 kpis[0] 是 spacer，next[0] 是 Main）
+                    // kpis[1] 對應 next[1], kpis[2] 對應 next[2]
                     columns.kpis.forEach((k, i) => {
                         if (!k.isSpacer && i < columns.next.length && columns.next[i].kpiAction) {
-                            drawLine(`tree-node-kpis-${i}`, `tree-node-next-${i}`, false, '100%');
+                            drawLine(`tree-node-kpis-${i}`, `tree-node-next-${i}`, { weightText: '100%' });
                         }
                     });
                 }
 
                 // inherit → next (skip goal)
                 if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0) {
-                    drawLine('tree-node-inherit-0', 'tree-node-next-0', false, '100%');
+                    drawLine('tree-node-inherit-0', 'tree-node-next-0', { weightText: '100%', reverseAnim: true });
                 }
             }, 150);
         }
