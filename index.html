@@ -1690,26 +1690,23 @@
             if (promptState.global.tone) globalStr.push(`${t('tree_tone_prefix')}${promptState.global.tone}`);
             if (globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: t('tree_system'), highlight: true });
 
-            // 稱讚時應用金色全局氛圍光 + 彩虹外框 (如果啟動 AI 稱讚)
+            // 稱讚時應用金色全局氛圍光
             const glassCard = container.closest('.glass-card');
-            const archCard = document.getElementById('architecture-card');
             if (promptState.inherit.praise) {
                 glassCard.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.04) 50%, rgba(245, 158, 11, 0.06) 100%)';
                 glassCard.style.borderColor = 'rgba(245, 158, 11, 0.25)';
                 glassCard.style.boxShadow = '0 0 60px rgba(245, 158, 11, 0.08), inset 0 0 40px rgba(245, 158, 11, 0.03)';
-                archCard.classList.add('rainbow-glow'); // 呼應要求：加上彩虹外框
             } else {
                 glassCard.style.background = '';
                 glassCard.style.borderColor = '';
                 glassCard.style.boxShadow = '';
-                archCard.classList.remove('rainbow-glow');
             }
 
             // 繼承背景節點
             if (promptState.inherit.filled) {
-                columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context') });
+                columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context'), rainbow: !!promptState.inherit.praise });
             } else if (promptState.inherit.praise) {
-                columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), empty: true });
+                columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), empty: true, rainbow: true });
             }
             if (promptState.goal.filled) {
                 if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
@@ -1739,6 +1736,7 @@
                         node.id = `tree-node-${colKey}-${i}`;
                         const isMain = s.type === 'Target' || s.highlight;
                         const isGolden = s.golden;
+                        const isRainbow = s.rainbow;
                         const isEmpty = s.empty;
                         const isKpiAction = s.kpiAction;
 
@@ -1761,12 +1759,12 @@
                             node.style.background = 'rgba(16, 185, 129, 0.08)';
                             node.style.borderColor = 'rgba(16, 185, 129, 0.3)';
                         } else if (isEmpty) {
-                            node.className = `tree-node ${cc.text}`;
+                            node.className = `tree-node ${cc.text}` + (isRainbow ? ' tree-node-rainbow' : '');
                             node.style.opacity = '0.5';
                             node.style.background = cc.bg;
                             node.style.borderColor = cc.border;
                         } else {
-                            node.className = `tree-node ${cc.text}`;
+                            node.className = `tree-node ${cc.text}` + (isRainbow ? ' tree-node-rainbow' : '');
                             node.style.background = cc.bg;
                             node.style.borderColor = cc.border;
                         }
