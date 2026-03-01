@@ -1403,9 +1403,12 @@
             // 稱讚時給繼承背景圓圈加上彩虹光圈
             nodes.inherit.classList.toggle('node-rainbow-glow', !!promptState.inherit.praise);
 
-            if (promptState.inherit.filled && promptState.goal.filled) { l12.style.width = "100%"; l12.classList.add('flowing'); } else { l12.style.width = "0%"; l12.classList.remove('flowing'); }
+            // 架構卡片連線：稱讚時視為 inherit 存在
+            const inheritActive = promptState.inherit.filled || promptState.inherit.praise;
+
+            if (inheritActive && promptState.goal.filled) { l12.style.width = "100%"; l12.classList.add('flowing'); } else { l12.style.width = "0%"; l12.classList.remove('flowing'); }
             if (promptState.goal.filled && promptState.next.filled) { l23.style.width = "100%"; l23.classList.add('flowing'); } else { l23.style.width = "0%"; l23.classList.remove('flowing'); }
-            if (promptState.inherit.filled && promptState.next.filled && !promptState.goal.filled) { cb.classList.remove('hidden'); cf.classList.add('curve-active'); } else { cb.classList.add('hidden'); cf.classList.remove('curve-active'); }
+            if (inheritActive && promptState.next.filled && !promptState.goal.filled) { cb.classList.remove('hidden'); cf.classList.add('curve-active'); } else { cb.classList.add('hidden'); cf.classList.remove('curve-active'); }
 
             container.classList.toggle('hidden', !(promptState.inherit.filled || promptState.goal.filled || promptState.next.filled || promptState.inherit.praise));
         }
@@ -1509,11 +1512,24 @@
 
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     const cp1x = x1 + (x2 - x1) / 2;
-                    path.setAttribute("d", `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`);
-                    path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.4)" : "rgba(59, 130, 246, 0.4)");
+                    const d = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`;
+                    path.setAttribute("d", d);
+                    path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.5)" : "rgba(59, 130, 246, 0.5)");
                     path.setAttribute("stroke-width", "2");
-                    if (isDash) path.setAttribute("stroke-dasharray", "5,5");
                     path.setAttribute("fill", "none");
+                    path.setAttribute("stroke-linecap", "round");
+
+                    // 流動虛線動畫
+                    path.setAttribute("stroke-dasharray", "8,6");
+                    const animDur = isDash ? "1.5s" : "2.5s";
+                    const animate = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+                    animate.setAttribute("attributeName", "stroke-dashoffset");
+                    animate.setAttribute("from", "28");
+                    animate.setAttribute("to", "0");
+                    animate.setAttribute("dur", animDur);
+                    animate.setAttribute("repeatCount", "indefinite");
+                    path.appendChild(animate);
+
                     svg.appendChild(path);
                 };
 
