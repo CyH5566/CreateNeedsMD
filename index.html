@@ -577,6 +577,29 @@
                         <div id="char-count" class="absolute bottom-4 right-6 text-xs text-gray-600 font-mono">0 字</div>
                     </div>
 
+                    <!-- Prompt 单詞池 (活字印刷) -->
+                    <div id="word-pool-section" class="hidden fade-in">
+                        <div class="border-t border-white/10 pt-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-bold text-purple-300 uppercase tracking-widest flex items-center"
+                                    data-i18n="word_pool_title">
+                                    🎲 Quick Word Pool
+                                </h3>
+                                <span class="text-[10px] text-gray-600 italic" data-i18n="word_pool_hint">Click to
+                                    add</span>
+                            </div>
+                            <div id="word-pool-chips" class="flex flex-wrap gap-2 mb-4"></div>
+                            <div class="flex gap-2">
+                                <input id="word-pool-input" type="text"
+                                    class="flex-1 bg-black/20 border border-purple-500/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all text-purple-100 font-mono placeholder:text-gray-700"
+                                    placeholder="Add custom word..." data-i18n="word_pool_input_placeholder">
+                                <button onclick="addCustomWord()"
+                                    class="bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 px-4 py-2 rounded-xl border border-purple-500/30 text-xs font-bold transition-all whitespace-nowrap"
+                                    data-i18n="word_pool_add_btn">+ Add</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- KPI 必要完成條件 -->
                     <div id="kpi-section" class="hidden fade-in space-y-4">
                         <div class="flex items-center justify-between border-t border-white/10 pt-6">
@@ -880,6 +903,10 @@
                 'prompt_kpi_plan': '#### KPI Implementation Plans:',
                 'next_kpi_title': '🎯 KPI Implementation Plans',
                 'next_kpi_placeholder': 'How to implement this KPI...',
+                'word_pool_title': '🎲 Quick Word Pool',
+                'word_pool_hint': 'Click to add',
+                'word_pool_input_placeholder': 'Add custom word...',
+                'word_pool_add_btn': '+ Add',
                 'tree_kpi_action': 'Plan',
                 'prompt_footer': '---\nNote: Please carefully read the above settings and context, and provide the best output that meets the constraints.',
                 'tree_system': 'System',
@@ -1001,6 +1028,10 @@
                 'prompt_kpi_plan': '#### KPI 實作計畫：',
                 'next_kpi_title': '🎯 KPI 實作計畫',
                 'next_kpi_placeholder': '該如何實作這個 KPI...',
+                'word_pool_title': '🎲 快速單詞池',
+                'word_pool_hint': '點擊加入',
+                'word_pool_input_placeholder': '新增自訂單詞...',
+                'word_pool_add_btn': '+ 新增',
                 'tree_kpi_action': '計畫',
                 'prompt_footer': '---\n提示：請確實閱讀上述設定與上下文，並給出符合限制條件的最優產出。',
                 'tree_system': '系統',
@@ -1122,6 +1153,10 @@
                 'prompt_kpi_plan': '#### KPI 实作计划：',
                 'next_kpi_title': '🎯 KPI 实作计划',
                 'next_kpi_placeholder': '该如何实作这个 KPI...',
+                'word_pool_title': '🎲 快速单词池',
+                'word_pool_hint': '点击加入',
+                'word_pool_input_placeholder': '新增自定义单词...',
+                'word_pool_add_btn': '+ 新增',
                 'tree_kpi_action': '计划',
                 'prompt_footer': '---\n提示：请确实阅读上述设定与上下文，并给出符合限制条件的最优产出。',
                 'tree_system': '系统',
@@ -1281,6 +1316,7 @@
                 kpiSection.classList.remove('hidden');
                 formatHelper.classList.add('hidden');
                 document.getElementById('next-kpi-section').classList.add('hidden');
+                document.getElementById('word-pool-section').classList.add('hidden');
                 renderKPIs();
             } else if (type === 'next') {
                 textarea.rows = 2;
@@ -1288,6 +1324,9 @@
                 goalHelper.classList.add('hidden');
                 kpiSection.classList.add('hidden');
                 formatHelper.classList.add('hidden');
+                // 顯示單詞池
+                document.getElementById('word-pool-section').classList.remove('hidden');
+                renderWordPool();
                 // 顯示 KPI 行動項
                 const hasKPIs = promptState.goal.kpis.filter(k => k.trim() !== '').length > 0;
                 const nextKpiSection = document.getElementById('next-kpi-section');
@@ -1299,6 +1338,7 @@
                 goalHelper.classList.add('hidden');
                 kpiSection.classList.add('hidden');
                 document.getElementById('next-kpi-section').classList.add('hidden');
+                document.getElementById('word-pool-section').classList.add('hidden');
                 formatHelper.classList.toggle('hidden', type !== 'inherit');
             }
             // 顯示/隱藏稱讚按鈕
@@ -1410,6 +1450,82 @@
             promptState.next.kpiActions[index] = val;
             autoSaveDraft();
         }
+
+        // --- 單詞池 (活字印刷) ---
+        const defaultWordPool = {
+            'en': ['Step-by-step', 'Verify', 'Optimize', 'Refactor', 'Debug', 'Test', 'Deploy', 'Document', 'Review', 'Prototype', 'Iterate', 'Analyze', 'Research', 'Compare'],
+            'zh-TW': ['逐步執行', '驗證', '優化', '重構', '除錯', '測試', '部署', '撰寫文件', '審查', '原型設計', '迭代', '分析', '研究', '比較'],
+            'zh-CN': ['逐步执行', '验证', '优化', '重构', '调试', '测试', '部署', '撰写文档', '审查', '原型设计', '迭代', '分析', '研究', '比较']
+        };
+
+        function getWordPool() {
+            const saved = localStorage.getItem('customWordPool');
+            const custom = saved ? JSON.parse(saved) : [];
+            const langDefaults = defaultWordPool[currentUILang] || defaultWordPool['en'];
+            return { defaults: langDefaults, custom };
+        }
+
+        function saveCustomWords(words) {
+            localStorage.setItem('customWordPool', JSON.stringify(words));
+        }
+
+        function renderWordPool() {
+            const container = document.getElementById('word-pool-chips');
+            const { defaults, custom } = getWordPool();
+            const textarea = document.getElementById('user-input');
+            const currentText = textarea.value;
+
+            const allWords = [...defaults.map(w => ({ word: w, isCustom: false })), ...custom.map(w => ({ word: w, isCustom: true }))];
+
+            container.innerHTML = allWords.map(({ word, isCustom }) => {
+                const isUsed = currentText.includes(word);
+                const usedClass = isUsed
+                    ? 'bg-purple-500/40 border-purple-400/60 text-purple-100'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-purple-500/20 hover:border-purple-400/30 hover:text-purple-200';
+                const removeBtn = isCustom
+                    ? `<span onclick="event.stopPropagation(); removeCustomWord('${word.replace(/'/g, "\\'")}')" class="ml-1 text-red-400/60 hover:text-red-300 cursor-pointer text-[10px]">&times;</span>`
+                    : '';
+                return `<button onclick="toggleWordInTextarea('${word.replace(/'/g, "\\'")}')"
+                    class="px-3 py-1.5 rounded-lg border text-xs font-mono transition-all duration-200 cursor-pointer ${usedClass}">
+                    ${word}${removeBtn}
+                </button>`;
+            }).join('');
+        }
+
+        function toggleWordInTextarea(word) {
+            const textarea = document.getElementById('user-input');
+            const text = textarea.value;
+            if (text.includes(word)) return; // 已存在就不再加
+            textarea.value = text ? text + '\n' + word : word;
+            handleInputContent();
+            autoSaveDraft();
+            renderWordPool(); // 刷新 chip 狀態
+        }
+
+        function addCustomWord() {
+            const input = document.getElementById('word-pool-input');
+            const word = input.value.trim();
+            if (!word) return;
+            const { custom } = getWordPool();
+            if (custom.includes(word)) { input.value = ''; return; }
+            custom.push(word);
+            saveCustomWords(custom);
+            input.value = '';
+            renderWordPool();
+        }
+
+        function removeCustomWord(word) {
+            const { custom } = getWordPool();
+            const updated = custom.filter(w => w !== word);
+            saveCustomWords(updated);
+            renderWordPool();
+        }
+
+        // Enter 鍵新增自訂單詞
+        document.addEventListener('DOMContentLoaded', () => {
+            const poolInput = document.getElementById('word-pool-input');
+            if (poolInput) poolInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomWord(); } });
+        });
 
         function clearCurrentInput() {
             document.getElementById('user-input').value = '';
