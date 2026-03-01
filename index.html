@@ -1745,13 +1745,28 @@
                         const isEmpty = s.empty;
                         const isKpiAction = s.kpiAction;
 
+                        if (colKey === 'next' && i === 0 && columns[colKey].length > 1) {
+                            // Add invisible spacer matching all sub-nodes to perfectly center tree-node-next-0
+                            const spacer = document.createElement('div');
+                            spacer.className = "flex flex-col gap-6 w-full opacity-0 pointer-events-none";
+                            // height 0 allows the flex container to balance them equally? 
+                            // Actually, just rendering the exact same nodes makes the top identical in height to the bottom.
+                            for (let j = 1; j < columns[colKey].length; j++) {
+                                const dummy = document.createElement('div');
+                                dummy.className = "tree-node";
+                                dummy.innerHTML = `<div class="text-[9px] uppercase tracking-widest mb-2 font-bold">${columns[colKey][j].type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${columns[colKey][j].label}</div>`;
+                                spacer.appendChild(dummy);
+                            }
+                            colDiv.appendChild(spacer);
+                        }
+
                         // 各欄位專屬配色
                         const colColors = {
-                            global: { text: 'text-slate-300', bg: 'rgba(148, 163, 184, 0.1)', border: 'rgba(148, 163, 184, 0.3)' },
-                            inherit: { text: 'text-indigo-300', bg: 'rgba(129, 140, 248, 0.12)', border: 'rgba(129, 140, 248, 0.35)' },
-                            goal: { text: 'text-rose-300', bg: 'rgba(251, 113, 133, 0.12)', border: 'rgba(251, 113, 133, 0.35)' },
-                            kpis: { text: 'text-amber-300', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.35)' },
-                            next: { text: 'text-sky-300', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.45)' }
+                            global: { text: 'text-slate-100', bg: 'rgba(71, 85, 105, 0.5)', border: 'rgba(148, 163, 184, 0.5)' },
+                            inherit: { text: 'text-indigo-100', bg: 'rgba(79, 70, 229, 0.5)', border: 'rgba(129, 140, 248, 0.5)' },
+                            goal: { text: 'text-rose-100', bg: 'rgba(225, 29, 72, 0.5)', border: 'rgba(251, 113, 133, 0.5)' },
+                            kpis: { text: 'text-amber-100', bg: 'rgba(217, 119, 6, 0.5)', border: 'rgba(245, 158, 11, 0.5)' },
+                            next: { text: 'text-sky-100', bg: 'rgba(2, 132, 199, 0.5)', border: 'rgba(56, 189, 248, 0.5)' }
                         };
                         const cc = colColors[colKey] || colColors.next;
 
@@ -1796,9 +1811,17 @@
                     const x2 = rect2.left - svgRect.left;
                     const y2 = rect2.top + (rect2.height / 2) - svgRect.top;
 
+                    // 若 Y 軸極為接近 (例如誤差 < 2px)，視為完美水平，以避免 Bezier 出現微小曲度
+                    const isHorizontal = Math.abs(y1 - y2) < 2;
+
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    const cp1x = x1 + (x2 - x1) / 2;
-                    const d = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`;
+                    let d = "";
+                    if (isHorizontal) {
+                        d = `M ${x1} ${y1} L ${x2} ${y2}`;
+                    } else {
+                        const cp1x = x1 + (x2 - x1) / 2;
+                        d = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`;
+                    }
                     path.setAttribute("d", d);
                     path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.5)" : "rgba(59, 130, 246, 0.5)");
                     path.setAttribute("stroke-width", "2");
@@ -1831,16 +1854,18 @@
                 // inherit → goal
                 if (columns.inherit.length > 0 && columns.goal.length > 0) drawLine('tree-node-inherit-0', 'tree-node-goal-0');
 
-                // goal → kpis / next
+                // goal → kpis and next
                 if (columns.goal.length > 0) {
+                    // 目標直接連接到主行動 (保持水平主線)
+                    if (columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
+
+                    // 目標發散到所有 KPI 限制
                     columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
-                    if (columns.kpis.length === 0 && columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
                 }
-                // kpis → next (main + kpi-actions)
+
+                // kpis → next (kpi-actions only)
                 if (columns.kpis.length > 0 && columns.next.length > 0) {
-                    // 各 KPI 連接到主 next 節點
-                    if (columns.next[0]) columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
-                    // 各 KPI 連接到對應的 action sub-node
+                    // 取消 KPI -> Main Action 的多重連線，改為只讓 KPI 對應到具體的 Plan
                     columns.next.forEach((n, ni) => {
                         if (n.kpiAction && ni > 0) {
                             const kpiIdx = ni - 1;
