@@ -1067,9 +1067,15 @@
 
         // 网页语言 → 输出语言 映射
         const uiLangToOutputLang = { 'en': 'English', 'zh-TW': '繁體中文', 'zh-CN': '簡體中文' };
+        const outputLangToCode = { 'English': 'en', '繁體中文': 'zh-TW', '簡體中文': 'zh-CN', '日本語': 'en' };
         let currentUILang = localStorage.getItem('uiLanguage') || 'en';
 
         function t(key) { return (translations[currentUILang] && translations[currentUILang][key]) || translations['en'][key] || key; }
+        // 根據輸出語言翻譯 (用於生成 Prompt)
+        function tOutput(key) {
+            const code = outputLangToCode[promptState.global.language] || currentUILang;
+            return (translations[code] && translations[code][key]) || translations['en'][key] || key;
+        }
 
         function applyLanguage(lang) {
             currentUILang = lang;
@@ -1456,33 +1462,33 @@
 
             // 正面反饋前置
             if (promptState.inherit.praise) {
-                p += t('praise_text') + "\n\n";
+                p += tOutput('praise_text') + "\n\n";
             }
 
             // 系統與全局設定
             const defaultLang = uiLangToOutputLang[currentUILang] || 'English';
             if (promptState.global.role || promptState.global.tone || promptState.global.language !== defaultLang) {
-                p += `${t('prompt_system_title')}\n`;
-                if (promptState.global.role) p += `${t('prompt_role')}${promptState.global.role}\n`;
-                if (promptState.global.tone) p += `${t('prompt_tone')}${promptState.global.tone}\n`;
-                p += `${t('prompt_lang')}${promptState.global.language}\n\n`;
+                p += `${tOutput('prompt_system_title')}\n`;
+                if (promptState.global.role) p += `${tOutput('prompt_role')}${promptState.global.role}\n`;
+                if (promptState.global.tone) p += `${tOutput('prompt_tone')}${promptState.global.tone}\n`;
+                p += `${tOutput('prompt_lang')}${promptState.global.language}\n\n`;
             }
 
-            if (promptState.inherit.filled) p += `${t('prompt_context')}\n${promptState.inherit.data}\n\n`;
+            if (promptState.inherit.filled) p += `${tOutput('prompt_context')}\n${promptState.inherit.data}\n\n`;
 
             if (promptState.goal.filled) {
-                p += `${t('prompt_goal')}\n${promptState.goal.data || t('prompt_no_desc')}\n`;
+                p += `${tOutput('prompt_goal')}\n${promptState.goal.data || tOutput('prompt_no_desc')}\n`;
                 const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== "");
                 if (validKPIs.length > 0) {
-                    p += `\n${t('prompt_constraints')}\n`;
+                    p += `\n${tOutput('prompt_constraints')}\n`;
                     validKPIs.forEach((k, i) => { p += `${i + 1}. ${k}\n`; });
                 }
                 p += `\n`;
             }
 
-            if (promptState.next.filled) p += `${t('prompt_action')}\n${promptState.next.data}\n\n`;
+            if (promptState.next.filled) p += `${tOutput('prompt_action')}\n${promptState.next.data}\n\n`;
 
-            p += t('prompt_footer');
+            p += tOutput('prompt_footer');
             return p;
         }
 
