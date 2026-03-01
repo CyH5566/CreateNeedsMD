@@ -1662,9 +1662,19 @@
                 promptState.goal.filled = content !== "" || validKPIs.length > 0;
                 promptState.goal.data = content;
             } else if (currentType === 'next') {
-                const validActions = promptState.next.kpiActions.filter(a => a.trim() !== '');
+                // Ensure kpiActions are valid arrays and filter out empty plan strings
+                let hasAnyValidPlan = false;
+                const validActions = promptState.next.kpiActions.map(plans => {
+                    if (Array.isArray(plans)) {
+                        const cleaned = plans.filter(a => a && a.trim() !== '');
+                        if (cleaned.length > 0) hasAnyValidPlan = true;
+                        return cleaned;
+                    }
+                    return [];
+                });
+
                 promptState.next.kpiActions = validActions;
-                promptState.next.filled = content !== "" || validActions.length > 0;
+                promptState.next.filled = content !== "" || hasAnyValidPlan;
                 promptState.next.data = content;
             } else {
                 promptState[currentType].filled = content !== "";
