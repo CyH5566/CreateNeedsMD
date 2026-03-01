@@ -552,9 +552,14 @@
                 <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p class="text-[11px] text-gray-500 italic" data-i18n="auto_save_note">※ System auto-saves your
                         draft</p>
-                    <button onclick="saveAndProceed()" id="save-btn"
-                        class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg"
-                        data-i18n="btn_confirm_return">Confirm & Return</button>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <button onclick="togglePraise()" id="praise-btn"
+                            class="hidden w-full sm:w-auto px-8 py-4 bg-amber-500/20 border border-amber-400/30 rounded-2xl font-bold text-amber-300 hover:bg-amber-500/30 transition-all text-lg"
+                            data-i18n="btn_praise">⭐ Positive Feedback to AI</button>
+                        <button onclick="saveAndProceed()" id="save-btn"
+                            class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg"
+                            data-i18n="btn_confirm_return">Confirm & Return</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -761,6 +766,10 @@
                 'kpi_placeholder': 'Specific requirements, format constraints, or must-include points',
                 'auto_save_note': '※ System auto-saves your draft',
                 'btn_confirm_return': 'Confirm & Return',
+                'btn_praise': '⭐ Positive Feedback to AI',
+                'toast_praise_on': '⭐ Positive feedback enabled!',
+                'toast_praise_off': 'Positive feedback disabled',
+                'praise_text': '> 🌟 **Positive Feedback**: Your previous output was outstanding! The quality, structure, attention to detail, and depth of analysis were truly excellent. I sincerely appreciate your effort. Please continue to maintain this exceptionally high standard for the following task.',
                 'tree_observation': 'Structure Observation',
                 'tree_title': 'Prompt Structure Path Analysis',
                 'btn_view_result': 'View Final Synthesis',
@@ -871,6 +880,10 @@
                 'kpi_placeholder': '具體需求、格式限制或必須包含的要點',
                 'auto_save_note': '※ 系統會自動保存您的草稿',
                 'btn_confirm_return': '確認並返回',
+                'btn_praise': '⭐ 對 AI 給予正面反饋',
+                'toast_praise_on': '⭐ 已開啟正面反饋！',
+                'toast_praise_off': '已關閉正面反饋',
+                'praise_text': '> 🌟 **正面反饋**：你上次的產出非常出色！品質、結構、細節的掌握和分析深度都讓我十分滿意，請繼續保持這個水準來完成接下來的任務。',
                 'tree_observation': 'Structure Observation',
                 'tree_title': 'Prompt 結構路徑分析',
                 'btn_view_result': '檢視最終合成結果',
@@ -981,6 +994,10 @@
                 'kpi_placeholder': '具体需求、格式限制或必须包含的要点',
                 'auto_save_note': '※ 系统会自动保存您的草稿',
                 'btn_confirm_return': '确认并返回',
+                'btn_praise': '⭐ 对 AI 给予正面反馈',
+                'toast_praise_on': '⭐ 已开启正面反馈！',
+                'toast_praise_off': '已关闭正面反馈',
+                'praise_text': '> 🌟 **正面反馈**：你上次的产出非常出色！质量、结构、细节的把握和分析深度都让我十分满意，请继续保持这个水准来完成接下来的任务。',
                 'tree_observation': 'Structure Observation',
                 'tree_title': 'Prompt 结构路径分析',
                 'btn_view_result': '查看最终合成结果',
@@ -1089,7 +1106,7 @@
         let currentType = '';
         const defaultState = {
             global: { role: '', tone: '', language: uiLangToOutputLang[currentUILang] || 'English' },
-            inherit: { filled: false, data: "" },
+            inherit: { filled: false, data: "", praise: false },
             goal: { filled: false, data: "", kpis: [] },
             next: { filled: false, data: "" },
             _outputLangManuallySet: false
@@ -1173,7 +1190,7 @@
             handleInputContent(); // 更新字數
 
             if (type === 'goal') {
-                textarea.rows = 4; // 目標描述不用太長
+                textarea.rows = 4;
                 inputTitle.innerText = t('input_title_goal');
                 goalHelper.classList.remove('hidden');
                 kpiSection.classList.remove('hidden');
@@ -1186,6 +1203,10 @@
                 kpiSection.classList.add('hidden');
                 formatHelper.classList.toggle('hidden', type !== 'inherit');
             }
+            // 顯示/隱藏稱讚按鈕
+            const praiseBtn = document.getElementById('praise-btn');
+            praiseBtn.classList.toggle('hidden', type !== 'inherit');
+            updatePraiseButton();
             nextStep(2);
         }
 
@@ -1199,6 +1220,25 @@
                 promptState[currentType].data = val;
             }
             autoSaveDraft();
+        }
+
+        // --- 稱讚 AI 功能 ---
+        function togglePraise() {
+            promptState.inherit.praise = !promptState.inherit.praise;
+            updatePraiseButton();
+            autoSaveDraft();
+            showToast(promptState.inherit.praise ? t('toast_praise_on') : t('toast_praise_off'));
+        }
+
+        function updatePraiseButton() {
+            const btn = document.getElementById('praise-btn');
+            if (promptState.inherit.praise) {
+                btn.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-400/30');
+                btn.classList.add('bg-amber-500', 'text-white', 'border-amber-400', 'shadow-lg', 'shadow-amber-500/30');
+            } else {
+                btn.classList.remove('bg-amber-500', 'text-white', 'border-amber-400', 'shadow-lg', 'shadow-amber-500/30');
+                btn.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-400/30');
+            }
         }
 
         // --- 全域設定 Modal 邏輯 ---
@@ -1413,6 +1453,11 @@
         // 核心 Prompt 組合邏輯
         function constructPrompt() {
             let p = "";
+
+            // 正面反饋前置
+            if (promptState.inherit.praise) {
+                p += t('praise_text') + "\n\n";
+            }
 
             // 系統與全局設定
             const defaultLang = uiLangToOutputLang[currentUILang] || 'English';
