@@ -1732,14 +1732,19 @@
             } else if (promptState.inherit.praise) {
                 columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), empty: true, rainbow: true });
             }
-            if (promptState.goal.filled) {
-                if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
-                // 加入一個空的 Spacer，把它們推到第一列以下 (因為第0列要留給主線 Goal -> Next)
-                if (promptState.goal.kpis.length > 0 || promptState.next.kpiActions?.length > 0) {
-                    columns.kpis.push({ isSpacer: true, empty: true });
-                }
-                promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') }));
+            if (promptState.goal.filled && promptState.goal.data) {
+                columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
+            } else {
+                columns.goal.push({ label: t('tree_target'), type: t('tree_target'), empty: true });
             }
+
+            // 加入一個空的 Spacer，把它們推到第一列以下 (因為第0列要留給主線 Goal -> Next)
+            if (promptState.goal.kpis.length > 0 || promptState.next.kpiActions?.length > 0) {
+                columns.kpis.push({ isSpacer: true, empty: true });
+            }
+            promptState.goal.kpis.forEach(k => {
+                if (k.trim() !== '') columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') });
+            });
             if (promptState.next.filled) columns.next.push({ label: promptState.next.data ? promptState.next.data.substring(0, 30) + '...' : t('tree_action'), type: t('tree_action') });
 
             // KPI 行動 sub-nodes
