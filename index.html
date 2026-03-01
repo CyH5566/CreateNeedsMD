@@ -1642,6 +1642,11 @@
                     node.classList.remove('node-active');
                     node.innerHTML = getIcon(key);
                 }
+
+                // 特別處理 inherit 節點的稱讚彩虹光
+                if (key === 'inherit') {
+                    node.classList.toggle('node-rainbow-glow', !!promptState.inherit.praise);
+                }
             });
 
 
