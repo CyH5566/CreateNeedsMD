@@ -1652,7 +1652,7 @@
             container.innerHTML = "";
             svg.innerHTML = "";
 
-            const columns = { global: [], praise: [], inherit: [], goal: [], kpis: [], next: [] };
+            const columns = { global: [], inherit: [], goal: [], kpis: [], next: [] };
 
             // 處理全域設定節點 (如果有的話)
             let globalStr = [];
@@ -1660,10 +1660,19 @@
             if (promptState.global.tone) globalStr.push(`${t('tree_tone_prefix')}${promptState.global.tone}`);
             if (globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: t('tree_system'), highlight: true });
 
-            // 稱讚節點 (金色)
-            if (promptState.inherit.praise) columns.praise.push({ label: t('tree_praise_label'), type: t('tree_praise_type'), golden: true });
+            // 稱讚時應用金色全局氛圍光
+            const glassCard = container.closest('.glass-card');
+            if (promptState.inherit.praise) {
+                glassCard.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.04) 50%, rgba(245, 158, 11, 0.06) 100%)';
+                glassCard.style.borderColor = 'rgba(245, 158, 11, 0.25)';
+                glassCard.style.boxShadow = '0 0 60px rgba(245, 158, 11, 0.08), inset 0 0 40px rgba(245, 158, 11, 0.03)';
+            } else {
+                glassCard.style.background = '';
+                glassCard.style.borderColor = '';
+                glassCard.style.boxShadow = '';
+            }
 
-            // 繼承背景節點（有內容時正常顯示；無內容但有稱讚時顯示灰色佔位節點）
+            // 繼承背景節點
             if (promptState.inherit.filled) {
                 columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context'), rainbow: !!promptState.inherit.praise });
             } else if (promptState.inherit.praise) {
@@ -1762,19 +1771,10 @@
                 // 連線邏輯
                 const goldLine = (id1, id2) => drawLine(id1, id2, true);
 
-                // global → praise / inherit
+                // global → inherit / goal
                 if (columns.global.length > 0) {
-                    if (columns.praise.length > 0) goldLine('tree-node-global-0', 'tree-node-praise-0');
                     if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
-                    else if (columns.praise.length === 0 && columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
-                }
-
-                // praise → next available node
-                if (columns.praise.length > 0) {
-                    const praiseTarget = columns.inherit.length > 0 ? 'tree-node-inherit-0'
-                        : columns.goal.length > 0 ? 'tree-node-goal-0'
-                            : columns.next.length > 0 ? 'tree-node-next-0' : null;
-                    if (praiseTarget) goldLine('tree-node-praise-0', praiseTarget);
+                    else if (columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
                 }
 
                 // inherit → goal
