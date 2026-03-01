@@ -668,7 +668,7 @@
                 <div class="w-full min-w-min relative h-full flex items-center justify-center">
                     <svg id="tree-svg" class="tree-connector-svg"></svg>
                     <div id="tree-nodes-container"
-                        class="flex items-stretch gap-8 md:gap-12 relative z-10 w-full justify-around flex-nowrap py-10">
+                        class="flex items-stretch gap-16 md:gap-24 relative z-10 w-full justify-around flex-nowrap py-10">
                     </div>
                 </div>
             </div>
@@ -1792,7 +1792,7 @@
             // 用來產生通用欄位的 function（移除 flex-1 以避免擠壓，改成 shrink-0 或預設以自然推開）
             const createColDiv = (id) => {
                 const div = document.createElement('div');
-                div.className = "flex flex-col gap-6 items-center z-10 shrink-0";
+                div.className = "flex flex-col gap-8 items-center z-10 shrink-0"; // increased gap
                 div.id = id;
                 return div;
             };
@@ -1824,11 +1824,11 @@
 
                 if (realKpis.length > 0) {
                     const branchesContainer = document.createElement('div');
-                    branchesContainer.className = "flex flex-row gap-6 justify-center w-full mt-2";
+                    branchesContainer.className = "flex flex-row gap-10 justify-center w-full mt-12";
 
                     realKpis.forEach((kpiNode, i) => {
                         const branchCol = document.createElement('div');
-                        branchCol.className = "flex flex-col gap-6 items-center shrink-0 w-[140px]"; // Force consistent width to prevent collapse
+                        branchCol.className = "flex flex-col gap-10 items-center shrink-0 w-[140px]"; // Force consistent width to prevent collapse
                         branchCol.appendChild(createNodeDOM(kpiNode, 'kpis', `tree-node-kpis-${i}`));
 
                         // Attach Plan (kpiAction) directly underneath if it exists
