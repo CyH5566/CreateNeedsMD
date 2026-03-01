@@ -577,21 +577,20 @@
                         <div id="char-count" class="absolute bottom-4 right-6 text-xs text-gray-600 font-mono">0 字</div>
                     </div>
 
-                    <!-- AI Praise Textarea (Visible only in Inherit) -->
-                    <div id="praise-section" class="hidden fade-in relative mt-6">
-                        <div class="absolute -top-3 left-4 px-2 bg-[#0B1120] text-amber-400 text-xs font-bold tracking-widest uppercase flex items-center gap-1 z-10"
-                            data-i18n="praise_title">
-                            ⭐ Positive Feedback to AI
-                        </div>
-                        <div class="flex flex-col gap-3">
-                            <textarea id="praise-text" rows="6" oninput="updatePraiseText(this.value)"
-                                class="w-full bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 text-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-amber-500/10 transition-all placeholder:text-amber-500/30 font-mono leading-relaxed text-amber-100"
-                                placeholder="Enter your positive feedback..."></textarea>
-                            <div class="flex justify-end">
-                                <button onclick="togglePraise()" id="praise-btn"
-                                    class="hidden px-6 py-3 bg-amber-500/20 border border-amber-400/30 rounded-xl font-bold text-amber-300 hover:bg-amber-500/30 transition-all text-sm flex items-center justify-center whitespace-nowrap"
-                                    data-i18n="btn_praise">⭐ Toggle Feedback</button>
+                    <!-- AI Praise Section (Visible only in Inherit) -->
+                    <div id="praise-section" class="hidden fade-in relative mt-8 space-y-4">
+                        <button onclick="togglePraise()" id="praise-btn"
+                            class="w-full px-8 py-4 bg-amber-500/10 border border-amber-400/20 rounded-2xl font-bold text-amber-300 hover:bg-amber-500/20 transition-all text-lg flex items-center justify-center gap-3"
+                            data-i18n="btn_praise">⭐ Positive Feedback to AI</button>
+
+                        <div id="praise-input-area" class="hidden fade-in relative">
+                            <div class="absolute -top-3 left-4 px-2 bg-[#0B1120] text-amber-500 text-xs font-bold tracking-widest uppercase flex items-center gap-1 z-10"
+                                data-i18n="praise_title">
+                                💬 Feedback Details
                             </div>
+                            <textarea id="praise-text" rows="4" oninput="updatePraiseText(this.value)"
+                                class="w-full bg-amber-500/5 border border-amber-500/30 rounded-2xl p-6 text-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-amber-500/10 transition-all placeholder:text-amber-500/30 font-mono leading-relaxed text-amber-100"
+                                placeholder="Enter your positive feedback..."></textarea>
                         </div>
                     </div>
 
@@ -1357,13 +1356,14 @@
                 formatHelper.classList.toggle('hidden', type !== 'inherit');
             }
             // 顯示/隱藏稱讚按鈕與稱讚輸入區
-            const praiseBtn = document.getElementById('praise-btn');
             const praiseSection = document.getElementById('praise-section');
+            const praiseInputArea = document.getElementById('praise-input-area');
             const isInherit = type === 'inherit';
-            praiseBtn.classList.toggle('hidden', !isInherit);
-            if (praiseSection) praiseSection.classList.toggle('hidden', !isInherit);
 
-            if (isInherit) {
+            if (praiseSection) praiseSection.classList.toggle('hidden', !isInherit);
+            if (praiseInputArea) praiseInputArea.classList.toggle('hidden', !(isInherit && promptState.inherit.praise));
+
+            if (isInherit && promptState.inherit.praise) {
                 // 如果是 inherit 且尚未初始化 praiseText，給予預設值
                 if (!promptState.inherit.praiseText) {
                     promptState.inherit.praiseText = tOutput('praise_text');
@@ -1392,6 +1392,22 @@
         // --- 稱讚 AI 功能 ---
         function togglePraise() {
             promptState.inherit.praise = !promptState.inherit.praise;
+            const praiseInputArea = document.getElementById('praise-input-area');
+            const praiseTextarea = document.getElementById('praise-text');
+
+            if (promptState.inherit.praise) {
+                if (praiseInputArea) praiseInputArea.classList.remove('hidden');
+                // 若沒有自訂文字，填入預設稱讚語
+                if (!promptState.inherit.praiseText) {
+                    const defaultPraise = tOutput('praise_text');
+                    promptState.inherit.praiseText = defaultPraise;
+                    if (praiseTextarea) praiseTextarea.value = defaultPraise;
+                } else {
+                    if (praiseTextarea) praiseTextarea.value = promptState.inherit.praiseText;
+                }
+            } else {
+                if (praiseInputArea) praiseInputArea.classList.add('hidden');
+            }
 
             updatePraiseButton();
             updateStatusTree();
