@@ -590,6 +590,17 @@
                         </div>
                         <div id="kpi-list" class="space-y-3"></div>
                     </div>
+
+                    <!-- 下一步計畫 KPI 行動項 -->
+                    <div id="next-kpi-section" class="hidden fade-in space-y-4">
+                        <div class="border-t border-white/10 pt-6">
+                            <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center mb-4"
+                                data-i18n="next_kpi_title">
+                                🎯 KPI Implementation Plans
+                            </h3>
+                            <div id="next-kpi-list" class="space-y-4"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -866,6 +877,10 @@
                 'prompt_no_desc': 'No abstract description',
                 'prompt_constraints': '【Constraints & Requirements】:',
                 'prompt_action': '### Next Steps (Action)',
+                'prompt_kpi_plan': '#### KPI Implementation Plans:',
+                'next_kpi_title': '🎯 KPI Implementation Plans',
+                'next_kpi_placeholder': 'How to implement this KPI...',
+                'tree_kpi_action': 'Plan',
                 'prompt_footer': '---\nNote: Please carefully read the above settings and context, and provide the best output that meets the constraints.',
                 'tree_system': 'System',
                 'tree_context': 'Context',
@@ -983,6 +998,10 @@
                 'prompt_no_desc': '無抽象描述',
                 'prompt_constraints': '【限制條件與具體要求】：',
                 'prompt_action': '### 下一步具體行動 (Action)',
+                'prompt_kpi_plan': '#### KPI 實作計畫：',
+                'next_kpi_title': '🎯 KPI 實作計畫',
+                'next_kpi_placeholder': '該如何實作這個 KPI...',
+                'tree_kpi_action': '計畫',
                 'prompt_footer': '---\n提示：請確實閱讀上述設定與上下文，並給出符合限制條件的最優產出。',
                 'tree_system': '系統',
                 'tree_context': '背景',
@@ -1100,6 +1119,10 @@
                 'prompt_no_desc': '无抽象描述',
                 'prompt_constraints': '【限制条件与具体要求】：',
                 'prompt_action': '### 下一步具体行动 (Action)',
+                'prompt_kpi_plan': '#### KPI 实作计划：',
+                'next_kpi_title': '🎯 KPI 实作计划',
+                'next_kpi_placeholder': '该如何实作这个 KPI...',
+                'tree_kpi_action': '计划',
                 'prompt_footer': '---\n提示：请确实阅读上述设定与上下文，并给出符合限制条件的最优产出。',
                 'tree_system': '系统',
                 'tree_context': '背景',
@@ -1170,7 +1193,7 @@
             global: { role: '', tone: '', language: uiLangToOutputLang[currentUILang] || 'English' },
             inherit: { filled: false, data: "", praise: false },
             goal: { filled: false, data: "", kpis: [] },
-            next: { filled: false, data: "" },
+            next: { filled: false, data: "", kpiActions: [] },
             _outputLangManuallySet: false
         };
         let promptState = JSON.parse(JSON.stringify(defaultState));
@@ -1257,12 +1280,25 @@
                 goalHelper.classList.remove('hidden');
                 kpiSection.classList.remove('hidden');
                 formatHelper.classList.add('hidden');
+                document.getElementById('next-kpi-section').classList.add('hidden');
                 renderKPIs();
-            } else {
-                textarea.rows = 12;
-                inputTitle.innerText = type === 'inherit' ? t('input_title_inherit') : t('input_title_next');
+            } else if (type === 'next') {
+                textarea.rows = 2;
+                inputTitle.innerText = t('input_title_next');
                 goalHelper.classList.add('hidden');
                 kpiSection.classList.add('hidden');
+                formatHelper.classList.add('hidden');
+                // 顯示 KPI 行動項
+                const hasKPIs = promptState.goal.kpis.filter(k => k.trim() !== '').length > 0;
+                const nextKpiSection = document.getElementById('next-kpi-section');
+                nextKpiSection.classList.toggle('hidden', !hasKPIs);
+                if (hasKPIs) renderNextKPIs();
+            } else {
+                textarea.rows = 12;
+                inputTitle.innerText = t('input_title_inherit');
+                goalHelper.classList.add('hidden');
+                kpiSection.classList.add('hidden');
+                document.getElementById('next-kpi-section').classList.add('hidden');
                 formatHelper.classList.toggle('hidden', type !== 'inherit');
             }
             // 顯示/隱藏稱讚按鈕
@@ -1347,12 +1383,43 @@
         function updateKPIValue(index, val) { promptState.goal.kpis[index] = val; autoSaveDraft(); }
         function removeKPI(index) { promptState.goal.kpis.splice(index, 1); renderKPIs(); autoSaveDraft(); }
 
+        // --- 下一步 KPI 行動項 ---
+        function renderNextKPIs() {
+            const list = document.getElementById('next-kpi-list');
+            const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
+            // 確保 kpiActions 陣列與 KPI 數量一致
+            while (promptState.next.kpiActions.length < validKPIs.length) promptState.next.kpiActions.push('');
+            promptState.next.kpiActions = promptState.next.kpiActions.slice(0, validKPIs.length);
+
+            list.innerHTML = validKPIs.map((kpi, i) => {
+                const actionPh = t('next_kpi_placeholder');
+                const val = promptState.next.kpiActions[i] || '';
+                return `
+                <div class="fade-in bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div class="flex items-start gap-2 mb-3">
+                        <span class="text-emerald-400 font-bold text-xs mt-0.5">${i + 1}.</span>
+                        <span class="text-sm text-gray-300 font-medium leading-relaxed">${kpi}</span>
+                    </div>
+                    <textarea oninput="updateNextKPIAction(${i}, this.value)" rows="2" placeholder="${actionPh}"
+                        class="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all text-emerald-100 font-mono leading-relaxed placeholder:text-gray-700">${val}</textarea>
+                </div>`;
+            }).join('');
+        }
+
+        function updateNextKPIAction(index, val) {
+            promptState.next.kpiActions[index] = val;
+            autoSaveDraft();
+        }
+
         function clearCurrentInput() {
             document.getElementById('user-input').value = '';
             handleInputContent();
             if (currentType === 'goal') {
                 promptState.goal.kpis = [];
                 renderKPIs();
+            } else if (currentType === 'next') {
+                promptState.next.kpiActions = [];
+                renderNextKPIs();
             }
             autoSaveDraft();
             showToast(t('toast_content_cleared'));
@@ -1366,9 +1433,14 @@
             const content = document.getElementById('user-input').value.trim();
             if (currentType === 'goal') {
                 const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== "");
-                promptState.goal.kpis = validKPIs; // 清除空白的KPI
+                promptState.goal.kpis = validKPIs;
                 promptState.goal.filled = content !== "" || validKPIs.length > 0;
                 promptState.goal.data = content;
+            } else if (currentType === 'next') {
+                const validActions = promptState.next.kpiActions.filter(a => a.trim() !== '');
+                promptState.next.kpiActions = validActions;
+                promptState.next.filled = content !== "" || validActions.length > 0;
+                promptState.next.data = content;
             } else {
                 promptState[currentType].filled = content !== "";
                 promptState[currentType].data = content;
@@ -1461,7 +1533,16 @@
                 if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
                 promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') }));
             }
-            if (promptState.next.filled) columns.next.push({ label: promptState.next.data.substring(0, 30) + '...', type: t('tree_action') });
+            if (promptState.next.filled) columns.next.push({ label: promptState.next.data ? promptState.next.data.substring(0, 30) + '...' : t('tree_action'), type: t('tree_action') });
+
+            // KPI 行動 sub-nodes
+            const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
+            const validActions = promptState.next.kpiActions || [];
+            validActions.forEach((action, i) => {
+                if (action && action.trim() !== '' && i < validKPIs.length) {
+                    columns.next.push({ label: action.substring(0, 25) + '...', type: `${t('tree_kpi_action')} ${i + 1}`, kpiAction: true });
+                }
+            });
 
             // 繪製節點 DOM
             let colIndex = 0;
@@ -1478,10 +1559,15 @@
                         const isGolden = s.golden;
                         const isRainbow = s.rainbow;
                         const isEmpty = s.empty;
+                        const isKpiAction = s.kpiAction;
                         if (isGolden) {
                             node.className = 'tree-node border-amber-400 text-amber-300 shadow-lg shadow-amber-500/20';
                             node.style.background = 'rgba(245, 158, 11, 0.1)';
                             node.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                        } else if (isKpiAction) {
+                            node.className = 'tree-node text-emerald-300';
+                            node.style.background = 'rgba(16, 185, 129, 0.08)';
+                            node.style.borderColor = 'rgba(16, 185, 129, 0.3)';
                         } else if (isEmpty) {
                             node.className = 'tree-node text-gray-400' + (isRainbow ? ' tree-node-rainbow' : '');
                         } else {
@@ -1559,8 +1645,17 @@
                     columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
                     if (columns.kpis.length === 0 && columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
                 }
+                // kpis → next (main + kpi-actions)
                 if (columns.kpis.length > 0 && columns.next.length > 0) {
-                    columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
+                    // 各 KPI 連接到主 next 節點
+                    if (columns.next[0]) columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
+                    // 各 KPI 連接到對應的 action sub-node
+                    columns.next.forEach((n, ni) => {
+                        if (n.kpiAction && ni > 0) {
+                            const kpiIdx = ni - 1;
+                            if (kpiIdx < columns.kpis.length) drawLine(`tree-node-kpis-${kpiIdx}`, `tree-node-next-${ni}`);
+                        }
+                    });
                 }
 
                 // inherit → next (skip goal)
@@ -1600,7 +1695,21 @@
                 p += `\n`;
             }
 
-            if (promptState.next.filled) p += `${tOutput('prompt_action')}\n${promptState.next.data}\n\n`;
+            if (promptState.next.filled) {
+                p += `${tOutput('prompt_action')}\n`;
+                if (promptState.next.data) p += `${promptState.next.data}\n`;
+                const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
+                const validActions = promptState.next.kpiActions || [];
+                const hasActions = validActions.some(a => a && a.trim() !== '');
+                if (hasActions && validKPIs.length > 0) {
+                    p += `\n${tOutput('prompt_kpi_plan')}\n`;
+                    validKPIs.forEach((kpi, i) => {
+                        const action = validActions[i] || '';
+                        if (action.trim()) p += `${i + 1}. ${kpi} \u2192 ${action}\n`;
+                    });
+                }
+                p += `\n`;
+            }
 
             p += tOutput('prompt_footer');
             return p;
