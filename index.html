@@ -297,15 +297,16 @@
                 ✨ Smart Prompt Workshop
             </div>
             <h1 class="text-5xl md:text-7xl font-bold mb-8 leading-tight">
-                <span data-i18n="title_prompt">AI Prompt </span><span
-                    class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400"
+                <span data-i18n="title_prompt">AI Prompt </span><br class="en-break">
+                <span
+                    class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 whitespace-nowrap"
                     data-i18n="title_generator">Smart Generator</span>
             </h1>
             <p class="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto text-keep-all">
                 <span class="inline-block" data-i18n="subtitle_1">Break free from traditional prompt
                     limitations</span><br class="hidden md:block">
-                <span class="inline-block" data-i18n="subtitle_2">Through visual module guidance, </span><span
-                    class="inline-block" data-i18n="subtitle_3">freely combine your needs</span><br
+                <span class="inline-block" data-i18n="subtitle_2">Through visual module guidance,</span>
+                <span class="inline-block" data-i18n="subtitle_3">freely combine your needs</span><br
                     class="hidden md:block">
                 <span class="inline-block" data-i18n="subtitle_4">to create AI prompts that truly understand you</span>
             </p>
@@ -726,12 +727,12 @@
         const translations = {
             'en': {
                 'badge_workshop': '✨ Smart Prompt Workshop',
-                'title_prompt': 'AI Prompt ',
+                'title_prompt': 'AI Prompt',
                 'title_generator': 'Smart Generator',
-                'subtitle_1': 'Break free from traditional prompt limitations',
-                'subtitle_2': 'Through visual module guidance, ',
-                'subtitle_3': 'freely combine your needs',
-                'subtitle_4': 'to create AI prompts that truly understand you',
+                'subtitle_1': 'Break free from traditional prompt limitations.',
+                'subtitle_2': 'Visually combine your needs',
+                'subtitle_3': ' to create AI prompts',
+                'subtitle_4': 'that truly understand you.',
                 'draft_found': 'Unfinished Draft Found',
                 'draft_desc': 'You have an incomplete prompt from last session',
                 'btn_resume_draft': 'Resume Draft',
@@ -1097,6 +1098,10 @@
                 } else {
                     el.innerHTML = translated;
                 }
+            });
+            // 英文版用獨立換行; 中文版不需要
+            document.querySelectorAll('.en-break').forEach(br => {
+                br.style.display = (lang === 'en') ? '' : 'none';
             });
             // 更新字数显示
             const charCount = document.getElementById('char-count');
