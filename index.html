@@ -835,6 +835,8 @@
                 'tree_role_prefix': 'Role: ',
                 'tree_tone_prefix': 'Tone: ',
                 'tree_core_goal': 'Core Goal / Problem',
+                'tree_praise_type': 'Feedback',
+                'tree_praise_label': '⭐ Positive Feedback',
                 'copied_label': '✅ Copied',
                 'copy_label': '📋 Copy Content',
                 'or_text': ' or '
@@ -950,6 +952,8 @@
                 'tree_role_prefix': '角色：',
                 'tree_tone_prefix': '語氣：',
                 'tree_core_goal': '核心目標/問題',
+                'tree_praise_type': '反饋',
+                'tree_praise_label': '⭐ 正面反饋',
                 'copied_label': '✅ 已複製',
                 'copy_label': '📋 複製內容',
                 'or_text': ' 或 '
@@ -1065,6 +1069,8 @@
                 'tree_role_prefix': '角色：',
                 'tree_tone_prefix': '语气：',
                 'tree_core_goal': '核心目标/问题',
+                'tree_praise_type': '反馈',
+                'tree_praise_label': '⭐ 正面反馈',
                 'copied_label': '✅ 已复制',
                 'copy_label': '📋 复制内容',
                 'or_text': ' 或 '
@@ -1387,13 +1393,16 @@
             container.innerHTML = "";
             svg.innerHTML = "";
 
-            const columns = { global: [], inherit: [], goal: [], kpis: [], next: [] };
+            const columns = { global: [], praise: [], inherit: [], goal: [], kpis: [], next: [] };
 
             // 處理全域設定節點 (如果有的話)
             let globalStr = [];
             if (promptState.global.role) globalStr.push(`${t('tree_role_prefix')}${promptState.global.role}`);
             if (promptState.global.tone) globalStr.push(`${t('tree_tone_prefix')}${promptState.global.tone}`);
             if (globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: t('tree_system'), highlight: true });
+
+            // 稱讚節點 (金色)
+            if (promptState.inherit.praise) columns.praise.push({ label: t('tree_praise_label'), type: t('tree_praise_type'), golden: true });
 
             if (promptState.inherit.filled) columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context') });
             if (promptState.goal.filled) {
@@ -1414,7 +1423,14 @@
                         const node = document.createElement('div');
                         node.id = `tree-node-${colKey}-${i}`;
                         const isMain = s.type === 'Target' || s.highlight;
-                        node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
+                        const isGolden = s.golden;
+                        if (isGolden) {
+                            node.className = 'tree-node border-amber-400 text-amber-300 shadow-lg shadow-amber-500/20';
+                            node.style.background = 'rgba(245, 158, 11, 0.1)';
+                            node.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                        } else {
+                            node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
+                        }
                         node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || t('tree_core_goal')}</div>`;
                         colDiv.appendChild(node);
                     });
@@ -1449,10 +1465,27 @@
                 };
 
                 // 連線邏輯
-                if (columns.global.length > 0 && columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
-                else if (columns.global.length > 0 && columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
+                const goldLine = (id1, id2) => drawLine(id1, id2, true);
 
+                // global → praise / inherit
+                if (columns.global.length > 0) {
+                    if (columns.praise.length > 0) goldLine('tree-node-global-0', 'tree-node-praise-0');
+                    if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
+                    else if (columns.praise.length === 0 && columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
+                }
+
+                // praise → next available node
+                if (columns.praise.length > 0) {
+                    const praiseTarget = columns.inherit.length > 0 ? 'tree-node-inherit-0'
+                        : columns.goal.length > 0 ? 'tree-node-goal-0'
+                            : columns.next.length > 0 ? 'tree-node-next-0' : null;
+                    if (praiseTarget) goldLine('tree-node-praise-0', praiseTarget);
+                }
+
+                // inherit → goal
                 if (columns.inherit.length > 0 && columns.goal.length > 0) drawLine('tree-node-inherit-0', 'tree-node-goal-0');
+
+                // goal → kpis / next
                 if (columns.goal.length > 0) {
                     columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
                     if (columns.kpis.length === 0 && columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
@@ -1460,6 +1493,8 @@
                 if (columns.kpis.length > 0 && columns.next.length > 0) {
                     columns.kpis.forEach((_, i) => drawLine(`tree-node-kpis-${i}`, 'tree-node-next-0'));
                 }
+
+                // inherit → next (skip goal)
                 if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0) {
                     drawLine('tree-node-inherit-0', 'tree-node-next-0');
                 }
