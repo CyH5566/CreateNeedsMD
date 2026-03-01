@@ -1612,8 +1612,6 @@
                 }
             });
 
-            // 稱讚時給繼承背景圓圈加上彩虹光圈
-            nodes.inherit.classList.toggle('node-rainbow-glow', !!promptState.inherit.praise);
 
             // 架構卡片連線：稱讚時視為 inherit 存在
             const inheritActive = promptState.inherit.filled || promptState.inherit.praise;
@@ -1674,9 +1672,9 @@
 
             // 繼承背景節點
             if (promptState.inherit.filled) {
-                columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context'), rainbow: !!promptState.inherit.praise });
+                columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context') });
             } else if (promptState.inherit.praise) {
-                columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), rainbow: true, empty: true });
+                columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), empty: true });
             }
             if (promptState.goal.filled) {
                 if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
@@ -1718,9 +1716,9 @@
                             node.style.background = 'rgba(16, 185, 129, 0.08)';
                             node.style.borderColor = 'rgba(16, 185, 129, 0.3)';
                         } else if (isEmpty) {
-                            node.className = 'tree-node text-gray-400' + (isRainbow ? ' tree-node-rainbow' : '');
+                            node.className = 'tree-node text-gray-400';
                         } else {
-                            node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}${isRainbow ? ' tree-node-rainbow' : ''}`;
+                            node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
                         }
                         node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || t('tree_core_goal')}</div>`;
                         colDiv.appendChild(node);
