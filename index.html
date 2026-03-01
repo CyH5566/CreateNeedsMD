@@ -1727,7 +1727,7 @@
             }
 
             // 繼承背景節點
-            if (promptState.inherit.filled) {
+            if (promptState.inherit.filled && promptState.inherit.data && promptState.inherit.data.trim() !== '') {
                 columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context'), rainbow: !!promptState.inherit.praise });
             } else if (promptState.inherit.praise) {
                 columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), empty: true, rainbow: true });
@@ -1745,7 +1745,9 @@
             promptState.goal.kpis.forEach(k => {
                 if (k.trim() !== '') columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') });
             });
-            if (promptState.next.filled) columns.next.push({ label: promptState.next.data ? promptState.next.data.substring(0, 30) + '...' : t('tree_action'), type: t('tree_action') });
+            if (promptState.next.filled && promptState.next.data && promptState.next.data.trim() !== '') {
+                columns.next.push({ label: promptState.next.data.substring(0, 30) + '...', type: t('tree_action') });
+            }
 
             // KPI 行動 sub-nodes
             const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
