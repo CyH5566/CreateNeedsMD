@@ -629,12 +629,19 @@
                 <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p class="text-[11px] text-gray-500 italic" data-i18n="auto_save_note">※ System auto-saves your
                         draft</p>
-                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                        <button onclick="togglePraise()" id="praise-btn"
-                            class="hidden w-full sm:w-auto px-8 py-4 bg-amber-500/20 border border-amber-400/30 rounded-2xl font-bold text-amber-300 hover:bg-amber-500/30 transition-all text-lg"
-                            data-i18n="btn_praise">⭐ Positive Feedback to AI</button>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+                        <div class="flex flex-col gap-2 w-full sm:w-auto">
+                            <button onclick="togglePraise()" id="praise-btn"
+                                class="hidden w-full px-8 py-4 bg-amber-500/20 border border-amber-400/30 rounded-2xl font-bold text-amber-300 hover:bg-amber-500/30 transition-all text-lg"
+                                data-i18n="btn_praise">⭐ Positive Feedback to AI</button>
+                            <div id="praise-input-area" class="hidden fade-in w-full">
+                                <textarea id="praise-text" rows="2" oninput="updatePraiseText(this.value)"
+                                    class="w-full bg-amber-500/10 border border-amber-400/30 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all text-amber-100 placeholder:text-amber-500/50 resize-none font-mono"
+                                    placeholder="Enter your positive feedback..."></textarea>
+                            </div>
+                        </div>
                         <button onclick="saveAndProceed()" id="save-btn"
-                            class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg"
+                            class="w-full sm:w-auto px-12 py-4 bg-blue-600 rounded-2xl font-bold hover:shadow-lg shadow-blue-500/20 transition-all text-lg h-16 self-start"
                             data-i18n="btn_confirm_return">Confirm & Return</button>
                     </div>
                 </div>
@@ -649,8 +656,8 @@
                     Structure Observation</div>
                 <h2 class="text-4xl font-bold text-keep-all" data-i18n="tree_title">Prompt Structure Path Analysis</h2>
             </div>
-            <div
-                class="glass-card p-4 md:p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-x-auto">
+            <div id="architecture-card"
+                class="glass-card p-4 md:p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-x-auto transition-all duration-300">
                 <div class="min-w-[700px] w-full relative h-full flex items-center justify-center">
                     <svg id="tree-svg" class="tree-connector-svg"></svg>
                     <div id="tree-nodes-container"
@@ -1225,10 +1232,10 @@
         // 狀態管理擴充了 global 設定
         let currentType = '';
         const defaultState = {
-            global: { role: '', tone: '', language: uiLangToOutputLang[currentUILang] || 'English' },
-            inherit: { filled: false, data: "", praise: false },
-            goal: { filled: false, data: "", kpis: [] },
-            next: { filled: false, data: "", kpiActions: [] },
+            global: { role: '', tone: '', language: 'English' },
+            inherit: { data: '', praise: false, praiseText: '', filled: false },
+            goal: { data: '', kpis: [], filled: false },
+            next: { data: '', kpiActions: [], filled: false },
             _outputLangManuallySet: false
         };
         let promptState = JSON.parse(JSON.stringify(defaultState));
@@ -1343,7 +1350,10 @@
             }
             // 顯示/隱藏稱讚按鈕
             const praiseBtn = document.getElementById('praise-btn');
-            praiseBtn.classList.toggle('hidden', type !== 'inherit');
+            const praiseInputArea = document.getElementById('praise-input-area');
+            const isInherit = type === 'inherit';
+            praiseBtn.classList.toggle('hidden', !isInherit);
+            praiseInputArea.classList.toggle('hidden', !(isInherit && promptState.inherit.praise));
             updatePraiseButton();
             nextStep(2);
         }
@@ -1363,10 +1373,32 @@
         // --- 稱讚 AI 功能 ---
         function togglePraise() {
             promptState.inherit.praise = !promptState.inherit.praise;
+            const praiseInputArea = document.getElementById('praise-input-area');
+            const praiseTextarea = document.getElementById('praise-text');
+
+            if (promptState.inherit.praise) {
+                praiseInputArea.classList.remove('hidden');
+                // 若沒有自訂文字，填入預設稱讚語
+                if (!promptState.inherit.praiseText) {
+                    const defaultPraise = tOutput('praise_text');
+                    promptState.inherit.praiseText = defaultPraise;
+                    praiseTextarea.value = defaultPraise;
+                } else {
+                    praiseTextarea.value = promptState.inherit.praiseText;
+                }
+            } else {
+                praiseInputArea.classList.add('hidden');
+            }
+
             updatePraiseButton();
             updateStatusTree();
             autoSaveDraft();
             showToast(promptState.inherit.praise ? t('toast_praise_on') : t('toast_praise_off'));
+        }
+
+        function updatePraiseText(val) {
+            promptState.inherit.praiseText = val;
+            autoSaveDraft();
         }
 
         function updatePraiseButton() {
@@ -1658,16 +1690,19 @@
             if (promptState.global.tone) globalStr.push(`${t('tree_tone_prefix')}${promptState.global.tone}`);
             if (globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: t('tree_system'), highlight: true });
 
-            // 稱讚時應用金色全局氛圍光
+            // 稱讚時應用金色全局氛圍光 + 彩虹外框 (如果啟動 AI 稱讚)
             const glassCard = container.closest('.glass-card');
+            const archCard = document.getElementById('architecture-card');
             if (promptState.inherit.praise) {
                 glassCard.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.04) 50%, rgba(245, 158, 11, 0.06) 100%)';
                 glassCard.style.borderColor = 'rgba(245, 158, 11, 0.25)';
                 glassCard.style.boxShadow = '0 0 60px rgba(245, 158, 11, 0.08), inset 0 0 40px rgba(245, 158, 11, 0.03)';
+                archCard.classList.add('rainbow-glow'); // 呼應要求：加上彩虹外框
             } else {
                 glassCard.style.background = '';
                 glassCard.style.borderColor = '';
                 glassCard.style.boxShadow = '';
+                archCard.classList.remove('rainbow-glow');
             }
 
             // 繼承背景節點
@@ -1822,9 +1857,10 @@
         function constructPrompt() {
             let p = "";
 
-            // 正面反饋前置
+            // 正面反饋前置 (使用自訂文字，如果為空則用預設)
             if (promptState.inherit.praise) {
-                p += tOutput('praise_text') + "\n\n";
+                const finalPraise = promptState.inherit.praiseText || tOutput('praise_text');
+                p += finalPraise + "\n\n";
             }
 
             // 系統與全局設定
