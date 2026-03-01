@@ -1823,8 +1823,15 @@
                 const kpiActions = columns.next.filter(n => n.kpiAction);
 
                 if (realKpis.length > 0) {
+                    // Create an absolute positioning wrapper to prevent spreading from affecting parent width
+                    const branchesWrapper = document.createElement('div');
+                    branchesWrapper.className = "relative w-full flex justify-center mt-12";
+
                     const branchesContainer = document.createElement('div');
-                    branchesContainer.className = "flex flex-row gap-10 justify-center w-full mt-12";
+                    branchesContainer.className = "absolute top-0 flex flex-row gap-10 justify-center";
+
+                    // Add sufficient bottom padding to the centerCol to account for the absolutely positioned elements
+                    let maxBranchHeight = 0;
 
                     realKpis.forEach((kpiNode, i) => {
                         const branchCol = document.createElement('div');
@@ -1832,13 +1839,26 @@
                         branchCol.appendChild(createNodeDOM(kpiNode, 'kpis', `tree-node-kpis-${i}`));
 
                         // Attach Plan (kpiAction) directly underneath if it exists
+                        let hasPlan = false;
                         if (i < kpiActions.length) {
                             branchCol.appendChild(createNodeDOM(kpiActions[i], 'next', `tree-node-plan-${i}`));
+                            hasPlan = true;
                         }
 
                         branchesContainer.appendChild(branchCol);
+                        maxBranchHeight = Math.max(maxBranchHeight, hasPlan ? 2 : 1);
                     });
-                    centerCol.appendChild(branchesContainer);
+
+                    branchesWrapper.appendChild(branchesContainer);
+                    centerCol.appendChild(branchesWrapper);
+
+                    // Add an invisible spacer to physically push down the layout boundary to account for absolute height
+                    const heightSpacer = document.createElement('div');
+                    // ~120px for a normal node, + ~40px for gap 10 (2.5rem). 
+                    // So 1 node is ~120px. 2 nodes is ~280px.
+                    heightSpacer.style.height = maxBranchHeight > 1 ? "280px" : "120px";
+                    heightSpacer.className = "w-full pointer-events-none";
+                    centerCol.appendChild(heightSpacer);
                 }
 
                 container.appendChild(centerCol);
