@@ -280,6 +280,11 @@
             border-color: rgba(255, 255, 255, 0.25);
         }
 
+        .node-rainbow-glow {
+            animation: rainbow-ring 3s linear infinite;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
         .tree-connector-svg {
             position: absolute;
             top: 0;
@@ -1283,6 +1288,7 @@
         function togglePraise() {
             promptState.inherit.praise = !promptState.inherit.praise;
             updatePraiseButton();
+            updateStatusTree();
             autoSaveDraft();
             showToast(promptState.inherit.praise ? t('toast_praise_on') : t('toast_praise_off'));
         }
@@ -1394,11 +1400,14 @@
                 }
             });
 
+            // 稱讚時給繼承背景圓圈加上彩虹光圈
+            nodes.inherit.classList.toggle('node-rainbow-glow', !!promptState.inherit.praise);
+
             if (promptState.inherit.filled && promptState.goal.filled) { l12.style.width = "100%"; l12.classList.add('flowing'); } else { l12.style.width = "0%"; l12.classList.remove('flowing'); }
             if (promptState.goal.filled && promptState.next.filled) { l23.style.width = "100%"; l23.classList.add('flowing'); } else { l23.style.width = "0%"; l23.classList.remove('flowing'); }
             if (promptState.inherit.filled && promptState.next.filled && !promptState.goal.filled) { cb.classList.remove('hidden'); cf.classList.add('curve-active'); } else { cb.classList.add('hidden'); cf.classList.remove('curve-active'); }
 
-            container.classList.toggle('hidden', !(promptState.inherit.filled || promptState.goal.filled || promptState.next.filled));
+            container.classList.toggle('hidden', !(promptState.inherit.filled || promptState.goal.filled || promptState.next.filled || promptState.inherit.praise));
         }
 
         function getIcon(key) {
