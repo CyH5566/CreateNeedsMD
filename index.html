@@ -917,6 +917,7 @@
                 'prompt_kpi_plan': '#### KPI Implementation Plans:',
                 'next_kpi_title': '🎯 KPI Implementation Plans',
                 'next_kpi_placeholder': 'How to implement this KPI...',
+                'next_kpi_add_plan': '+ Add Plan',
                 'word_pool_title': '🎲 Quick Word Pool',
                 'word_pool_hint': 'Click to add',
                 'word_pool_input_placeholder': 'Add custom word...',
@@ -1042,6 +1043,7 @@
                 'prompt_kpi_plan': '#### KPI 實作計畫：',
                 'next_kpi_title': '🎯 KPI 實作計畫',
                 'next_kpi_placeholder': '該如何實作這個 KPI...',
+                'next_kpi_add_plan': '+ 新增計畫',
                 'word_pool_title': '🎲 快速單詞池',
                 'word_pool_hint': '點擊加入',
                 'word_pool_input_placeholder': '新增自訂單詞...',
@@ -1167,6 +1169,7 @@
                 'prompt_kpi_plan': '#### KPI 实作计划：',
                 'next_kpi_title': '🎯 KPI 实作计划',
                 'next_kpi_placeholder': '该如何实作这个 KPI...',
+                'next_kpi_add_plan': '+ 新增计划',
                 'word_pool_title': '🎲 快速单词池',
                 'word_pool_hint': '点击加入',
                 'word_pool_input_placeholder': '新增自定义单词...',
@@ -1478,27 +1481,58 @@
         function renderNextKPIs() {
             const list = document.getElementById('next-kpi-list');
             const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
-            // 確保 kpiActions 陣列與 KPI 數量一致
-            while (promptState.next.kpiActions.length < validKPIs.length) promptState.next.kpiActions.push('');
-            promptState.next.kpiActions = promptState.next.kpiActions.slice(0, validKPIs.length);
 
-            list.innerHTML = validKPIs.map((kpi, i) => {
+            // 確保 kpiActions 陣列與 KPI 數量一致，且皆為陣列型態 (向下相容)
+            while (promptState.next.kpiActions.length < validKPIs.length) promptState.next.kpiActions.push(['']);
+            promptState.next.kpiActions = promptState.next.kpiActions.slice(0, validKPIs.length).map(a =>
+                Array.isArray(a) ? (a.length > 0 ? a : ['']) : [a || '']
+            );
+
+            list.innerHTML = validKPIs.map((kpi, kpiIndex) => {
                 const actionPh = t('next_kpi_placeholder');
-                const val = promptState.next.kpiActions[i] || '';
+                const addPlanText = t('next_kpi_add_plan');
+                const plans = promptState.next.kpiActions[kpiIndex];
+
+                const plansHtml = plans.map((val, planIndex) => `
+                    <div class="relative group mt-2">
+                        <textarea oninput="updateNextKPIAction(${kpiIndex}, ${planIndex}, this.value)" rows="2" placeholder="${actionPh}"
+                            class="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all text-emerald-100 font-mono leading-relaxed placeholder:text-gray-700">${val}</textarea>
+                        ${plans.length > 1 ? `<button onclick="removeNextKPIAction(${kpiIndex}, ${planIndex})" class="absolute top-2 right-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-lg p-1" title="Remove Plan">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>` : ''}
+                    </div>
+                `).join('');
+
                 return `
-                <div class="fade-in bg-white/5 rounded-2xl p-4 border border-white/10">
-                    <div class="flex items-start gap-2 mb-3">
-                        <span class="text-emerald-400 font-bold text-xs mt-0.5">${i + 1}.</span>
+                <div class="fade-in bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-2">
+                    <div class="flex items-start gap-2 mb-1">
+                        <span class="text-emerald-400 font-bold text-xs mt-0.5">${kpiIndex + 1}.</span>
                         <span class="text-sm text-gray-300 font-medium leading-relaxed">${kpi}</span>
                     </div>
-                    <textarea oninput="updateNextKPIAction(${i}, this.value)" rows="2" placeholder="${actionPh}"
-                        class="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all text-emerald-100 font-mono leading-relaxed placeholder:text-gray-700">${val}</textarea>
+                    ${plansHtml}
+                    <div class="flex justify-end mt-1">
+                        <button onclick="addNextKPIAction(${kpiIndex})" class="text-xs text-emerald-400/70 hover:text-emerald-300 font-bold px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition border border-emerald-500/20">
+                            ${addPlanText}
+                        </button>
+                    </div>
                 </div>`;
             }).join('');
         }
 
-        function updateNextKPIAction(index, val) {
-            promptState.next.kpiActions[index] = val;
+        function updateNextKPIAction(kpiIndex, planIndex, val) {
+            promptState.next.kpiActions[kpiIndex][planIndex] = val;
+            autoSaveDraft();
+        }
+
+        function addNextKPIAction(kpiIndex) {
+            promptState.next.kpiActions[kpiIndex].push("");
+            renderNextKPIs();
+            autoSaveDraft();
+        }
+
+        function removeNextKPIAction(kpiIndex, planIndex) {
+            promptState.next.kpiActions[kpiIndex].splice(planIndex, 1);
+            renderNextKPIs();
             autoSaveDraft();
         }
 
@@ -1752,9 +1786,19 @@
             // KPI 行動 sub-nodes
             const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
             const validActions = promptState.next.kpiActions || [];
-            validActions.forEach((action, i) => {
-                if (action && action.trim() !== '' && i < validKPIs.length) {
-                    columns.next.push({ label: action.substring(0, 25) + '...', type: `${t('tree_kpi_action')} ${i + 1}`, kpiAction: true });
+            validActions.forEach((plansArray, kpiIndex) => {
+                if (Array.isArray(plansArray) && kpiIndex < validKPIs.length) {
+                    plansArray.forEach((action, planIndex) => {
+                        if (action && action.trim() !== '') {
+                            columns.next.push({
+                                label: action.substring(0, 25) + '...',
+                                type: `${t('tree_kpi_action')} ${kpiIndex + 1}.${planIndex + 1}`,
+                                kpiAction: true,
+                                kpiIndex: kpiIndex,
+                                planIndex: planIndex
+                            });
+                        }
+                    });
                 }
             });
 
@@ -1835,14 +1879,21 @@
 
                 realKpis.forEach((kpiNode, i) => {
                     const branchCol = document.createElement('div');
-                    branchCol.className = "flex flex-col gap-10 items-center shrink-0 w-[140px]"; // Force consistent width to prevent collapse
+                    branchCol.className = "flex flex-col gap-10 items-center shrink-0 min-w-[140px]"; // Force consistent width to prevent collapse
                     branchCol.appendChild(createNodeDOM(kpiNode, 'kpis', `tree-node-kpis-${i}`));
 
-                    // Attach Plan (kpiAction) directly underneath if it exists
-                    let hasPlan = false;
-                    if (i < kpiActions.length) {
-                        branchCol.appendChild(createNodeDOM(kpiActions[i], 'next', `tree-node-plan-${i}`));
-                        hasPlan = true;
+                    // Find all plans for this KPI constraint
+                    const kpiPlans = kpiActions.filter(n => n.kpiIndex === i);
+                    let hasPlan = kpiPlans.length > 0;
+
+                    if (hasPlan) {
+                        const plansRow = document.createElement('div');
+                        // Use flex-row to spread multiple plans evenly under this single KPI constraint
+                        plansRow.className = "flex flex-row gap-6 items-start justify-center";
+                        kpiPlans.forEach(planNode => {
+                            plansRow.appendChild(createNodeDOM(planNode, 'next', `tree-node-plan-${i}-${planNode.planIndex}`));
+                        });
+                        branchCol.appendChild(plansRow);
                     }
 
                     branchesContainer.appendChild(branchCol);
@@ -2051,11 +2102,17 @@
                         const kpiActions = columns.next.filter(n => n.kpiAction);
                         if (realKpis.length > 0 && kpiActions.length > 0) {
                             realKpis.forEach((k, i) => {
-                                if (i < kpiActions.length) {
-                                    drawLine(`tree-node-kpis-${i}`, `tree-node-plan-${i}`, {
-                                        weightText: '100%',
-                                        anchorStart: 'bottom',
-                                        anchorEnd: 'top'
+                                const plansForKpi = kpiActions.filter(n => n.kpiIndex === i);
+                                if (plansForKpi.length > 0) {
+                                    // 平分權重
+                                    const planWeight = `${Math.floor(100 / plansForKpi.length)}%`;
+                                    plansForKpi.forEach(plan => {
+                                        drawLine(`tree-node-kpis-${i}`, `tree-node-plan-${i}-${plan.planIndex}`, {
+                                            isDash: true,
+                                            weightText: plansForKpi.length > 1 ? planWeight : '100%',
+                                            anchorStart: 'bottom',
+                                            anchorEnd: 'top'
+                                        });
                                     });
                                 }
                             });
@@ -2106,12 +2163,25 @@
                 if (promptState.next.data) p += `${promptState.next.data}\n`;
                 const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
                 const validActions = promptState.next.kpiActions || [];
-                const hasActions = validActions.some(a => a && a.trim() !== '');
-                if (hasActions && validKPIs.length > 0) {
+
+                // check if any plan has text
+                let hasAnyAction = false;
+                validActions.forEach(plans => {
+                    if (Array.isArray(plans)) {
+                        if (plans.some(a => a && a.trim() !== '')) hasAnyAction = true;
+                    }
+                });
+
+                if (hasAnyAction && validKPIs.length > 0) {
                     p += `\n${tOutput('prompt_kpi_plan')}\n`;
                     validKPIs.forEach((kpi, i) => {
-                        const action = validActions[i] || '';
-                        if (action.trim()) p += `${i + 1}. ${kpi} \u2192 ${action}\n`;
+                        const plans = validActions[i] || [];
+                        if (Array.isArray(plans)) {
+                            const activePlans = plans.filter(a => a.trim() !== '');
+                            activePlans.forEach(action => {
+                                p += `- ${kpi} \u2192 ${action}\n`;
+                            });
+                        }
                     });
                 }
                 p += `\n`;
