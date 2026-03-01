@@ -245,6 +245,41 @@
             background: rgba(59, 130, 246, 0.05);
         }
 
+        @keyframes rainbow-ring {
+            0% {
+                box-shadow: 0 0 12px 3px rgba(255, 0, 0, 0.5), 0 0 24px 6px rgba(255, 0, 0, 0.15);
+            }
+
+            16% {
+                box-shadow: 0 0 12px 3px rgba(255, 165, 0, 0.5), 0 0 24px 6px rgba(255, 165, 0, 0.15);
+            }
+
+            33% {
+                box-shadow: 0 0 12px 3px rgba(255, 255, 0, 0.5), 0 0 24px 6px rgba(255, 255, 0, 0.15);
+            }
+
+            50% {
+                box-shadow: 0 0 12px 3px rgba(0, 200, 80, 0.5), 0 0 24px 6px rgba(0, 200, 80, 0.15);
+            }
+
+            66% {
+                box-shadow: 0 0 12px 3px rgba(0, 150, 255, 0.5), 0 0 24px 6px rgba(0, 150, 255, 0.15);
+            }
+
+            83% {
+                box-shadow: 0 0 12px 3px rgba(130, 0, 255, 0.5), 0 0 24px 6px rgba(130, 0, 255, 0.15);
+            }
+
+            100% {
+                box-shadow: 0 0 12px 3px rgba(255, 0, 0, 0.5), 0 0 24px 6px rgba(255, 0, 0, 0.15);
+            }
+        }
+
+        .tree-node-rainbow {
+            animation: rainbow-ring 3s linear infinite;
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
         .tree-connector-svg {
             position: absolute;
             top: 0;
@@ -1404,7 +1439,12 @@
             // 稱讚節點 (金色)
             if (promptState.inherit.praise) columns.praise.push({ label: t('tree_praise_label'), type: t('tree_praise_type'), golden: true });
 
-            if (promptState.inherit.filled) columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context') });
+            // 繼承背景節點（有內容時正常顯示；無內容但有稱讚時顯示灰色佔位節點）
+            if (promptState.inherit.filled) {
+                columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context'), rainbow: !!promptState.inherit.praise });
+            } else if (promptState.inherit.praise) {
+                columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), rainbow: true, empty: true });
+            }
             if (promptState.goal.filled) {
                 if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
                 promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') }));
@@ -1424,12 +1464,16 @@
                         node.id = `tree-node-${colKey}-${i}`;
                         const isMain = s.type === 'Target' || s.highlight;
                         const isGolden = s.golden;
+                        const isRainbow = s.rainbow;
+                        const isEmpty = s.empty;
                         if (isGolden) {
                             node.className = 'tree-node border-amber-400 text-amber-300 shadow-lg shadow-amber-500/20';
                             node.style.background = 'rgba(245, 158, 11, 0.1)';
                             node.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                        } else if (isEmpty) {
+                            node.className = 'tree-node text-gray-400' + (isRainbow ? ' tree-node-rainbow' : '');
                         } else {
-                            node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}`;
+                            node.className = `tree-node ${isMain ? 'tree-node-highlight border-blue-500 text-blue-300' : 'text-gray-400'}${isRainbow ? ' tree-node-rainbow' : ''}`;
                         }
                         node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || t('tree_core_goal')}</div>`;
                         colDiv.appendChild(node);
