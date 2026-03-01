@@ -1457,12 +1457,26 @@
             'zh-TW': ['保持一貫的美術風格', '確保向下相容，不破壞現有功能', '記得同步更新所有語言版本'],
             'zh-CN': ['保持一贯的美术风格', '确保向下兼容，不破坏现有功能', '记得同步更新所有语言版本']
         };
+        // 不可刪除的預設詞 (各語言 index=1)
+        const lockedWords = new Set([
+            'Ensure backward compatibility without breaking changes',
+            '確保向下相容，不破壞現有功能',
+            '确保向下兼容，不破坏现有功能'
+        ]);
+
+        function getDeletedDefaults() {
+            const saved = localStorage.getItem('deletedDefaultWords');
+            return saved ? JSON.parse(saved) : [];
+        }
+        function saveDeletedDefaults(arr) { localStorage.setItem('deletedDefaultWords', JSON.stringify(arr)); }
 
         function getWordPool() {
             const saved = localStorage.getItem('customWordPool');
             const custom = saved ? JSON.parse(saved) : [];
             const langDefaults = defaultWordPool[currentUILang] || defaultWordPool['en'];
-            return { defaults: langDefaults, custom };
+            const deleted = getDeletedDefaults();
+            const visibleDefaults = langDefaults.filter(w => !deleted.includes(w));
+            return { defaults: visibleDefaults, custom };
         }
 
         function saveCustomWords(words) {
@@ -1479,17 +1493,27 @@
 
             container.innerHTML = allWords.map(({ word, isCustom }) => {
                 const isUsed = currentText.includes(word);
+                const isLocked = lockedWords.has(word);
                 const usedClass = isUsed
                     ? 'bg-purple-500/40 border-purple-400/60 text-purple-100'
                     : 'bg-white/5 border-white/10 text-gray-400 hover:bg-purple-500/20 hover:border-purple-400/30 hover:text-purple-200';
-                const removeBtn = isCustom
-                    ? `<span onclick="event.stopPropagation(); removeCustomWord('${word.replace(/'/g, "\\'")}')" class="ml-1 text-red-400/60 hover:text-red-300 cursor-pointer text-[10px]">&times;</span>`
+                const canRemove = isCustom || (!isLocked);
+                const removeFn = isCustom ? `removeCustomWord('${word.replace(/'/g, "\\'")}')` : `removeDefaultWord('${word.replace(/'/g, "\\'")}')`;
+                const removeBtn = canRemove
+                    ? `<span onclick="event.stopPropagation(); ${removeFn}" class="ml-1 text-red-400/60 hover:text-red-300 cursor-pointer text-[10px]">&times;</span>`
                     : '';
                 return `<button onclick="toggleWordInTextarea('${word.replace(/'/g, "\\'")}')"
                     class="px-3 py-1.5 rounded-lg border text-xs font-mono transition-all duration-200 cursor-pointer ${usedClass}">
                     ${word}${removeBtn}
                 </button>`;
             }).join('');
+        }
+
+        function removeDefaultWord(word) {
+            const deleted = getDeletedDefaults();
+            if (!deleted.includes(word)) deleted.push(word);
+            saveDeletedDefaults(deleted);
+            renderWordPool();
         }
 
         function toggleWordInTextarea(word) {
