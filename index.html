@@ -1453,9 +1453,9 @@
 
         // --- 單詞池 (活字印刷) ---
         const defaultWordPool = {
-            'en': ['Maintain the existing design style consistency', 'Ensure backward compatibility without breaking changes', 'Remember to sync updates across all language versions'],
-            'zh-TW': ['保持一貫的美術風格', '確保向下相容，不破壞現有功能', '記得同步更新所有語言版本'],
-            'zh-CN': ['保持一贯的美术风格', '确保向下兼容，不破坏现有功能', '记得同步更新所有语言版本']
+            'en': ['Ensure backward compatibility without breaking changes', 'Maintain the existing design style consistency', 'Remember to sync updates across all language versions'],
+            'zh-TW': ['確保向下相容，不破壞現有功能', '保持一貫的美術風格', '記得同步更新所有語言版本'],
+            'zh-CN': ['确保向下兼容，不破坏现有功能', '保持一贯的美术风格', '记得同步更新所有语言版本']
         };
         // 不可刪除的預設詞 (各語言 index=1)
         const lockedWords = new Set([
@@ -1500,10 +1500,10 @@
                 const canRemove = isCustom || (!isLocked);
                 const removeFn = isCustom ? `removeCustomWord('${word.replace(/'/g, "\\'")}')` : `removeDefaultWord('${word.replace(/'/g, "\\'")}')`;
                 const removeBtn = canRemove
-                    ? `<span onclick="event.stopPropagation(); ${removeFn}" class="ml-1 text-red-400/60 hover:text-red-300 cursor-pointer text-[10px]">&times;</span>`
+                    ? `<span onclick="event.stopPropagation(); ${removeFn}" class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white hover:border-red-400 transition-all cursor-pointer text-[10px] leading-none opacity-0 group-hover:opacity-100" style="font-size:10px">&times;</span>`
                     : '';
                 return `<button onclick="toggleWordInTextarea('${word.replace(/'/g, "\\'")}')"
-                    class="px-3 py-1.5 rounded-lg border text-xs font-mono transition-all duration-200 cursor-pointer ${usedClass}">
+                    class="relative group px-3 py-1.5 rounded-lg border text-xs font-mono transition-all duration-200 cursor-pointer ${usedClass}">
                     ${word}${removeBtn}
                 </button>`;
             }).join('');
