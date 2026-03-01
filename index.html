@@ -664,22 +664,11 @@
                 <h2 class="text-4xl font-bold text-keep-all" data-i18n="tree_title">Prompt Structure Path Analysis</h2>
             </div>
             <div id="architecture-card"
-                class="glass-card p-4 md:p-8 rounded-[3.5rem] relative min-h-[400px] flex flex-col items-center justify-center overflow-hidden transition-all duration-300 w-full mx-auto">
-                <style>
-                    /* Scale down on very small screens automatically */
-                    @media (max-width: 768px) {
-                        #architecture-card {
-                            transform: scale(0.9);
-                            transform-origin: center top;
-                            margin-bottom: -40px;
-                        }
-                    }
-                </style>
-                <div class="w-full relative h-full flex items-center justify-center max-w-full">
-                    <svg id="tree-svg" class="tree-connector-svg"
-                        style="overflow: visible; pointer-events: none; z-index: 0;"></svg>
+                class="glass-card p-4 md:p-12 rounded-[3.5rem] relative min-h-[400px] flex items-center justify-center overflow-x-auto transition-all duration-300">
+                <div class="min-w-[700px] w-full relative h-full flex items-center justify-center">
+                    <svg id="tree-svg" class="tree-connector-svg"></svg>
                     <div id="tree-nodes-container"
-                        class="relative z-10 w-full flex flex-col items-center justify-center py-10 max-w-full h-full">
+                        class="flex items-stretch gap-8 md:gap-12 relative z-10 w-full justify-around flex-nowrap py-10">
                     </div>
                 </div>
             </div>
@@ -1717,103 +1706,118 @@
             container.innerHTML = "";
             svg.innerHTML = "";
 
-            // 重寫 DOM 生成邏輯 (使用原生 flex-col/flex-row 排版)
-            const mainContainer = document.createElement('div');
-            mainContainer.className = "flex flex-col items-center w-full gap-12 z-10 relative";
+            const columns = { global: [], inherit: [], goal: [], kpis: [], next: [] };
 
-            // 1. Build Row 1 (Main flow)
-            const row1 = document.createElement('div');
-            row1.className = "flex flex-row items-center justify-center gap-6 md:gap-12 w-full flex-wrap md:flex-nowrap";
+            // 處理全域設定節點 (如果有的話)
+            let globalStr = [];
+            if (promptState.global.role) globalStr.push(`${t('tree_role_prefix')}${promptState.global.role}`);
+            if (promptState.global.tone) globalStr.push(`${t('tree_tone_prefix')}${promptState.global.tone}`);
+            if (globalStr.length > 0) columns.global.push({ label: globalStr.join('<br>'), type: t('tree_system'), highlight: true });
 
-            // Helper function to create a node DOM element
-            const createNode = (id, type, label, styleType, isRainbow = false, isGolden = false) => {
-                const node = document.createElement('div');
-                node.id = id;
+            // 稱讚時應用金色全局氛圍光
+            const glassCard = container.closest('.glass-card');
+            if (promptState.inherit.praise) {
+                glassCard.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.04) 50%, rgba(245, 158, 11, 0.06) 100%)';
+                glassCard.style.borderColor = 'rgba(245, 158, 11, 0.25)';
+                glassCard.style.boxShadow = '0 0 60px rgba(245, 158, 11, 0.08), inset 0 0 40px rgba(245, 158, 11, 0.03)';
+            } else {
+                glassCard.style.background = '';
+                glassCard.style.borderColor = '';
+                glassCard.style.boxShadow = '';
+            }
 
-                const colColors = {
-                    global: { text: 'text-slate-100', bg: 'rgba(71, 85, 105, 0.5)', border: 'rgba(148, 163, 184, 0.5)' },
-                    inherit: { text: 'text-indigo-100', bg: 'rgba(79, 70, 229, 0.5)', border: 'rgba(129, 140, 248, 0.5)' },
-                    goal: { text: 'text-rose-100', bg: 'rgba(225, 29, 72, 0.5)', border: 'rgba(251, 113, 133, 0.5)' },
-                    constraint: { text: 'text-amber-100', bg: 'rgba(217, 119, 6, 0.5)', border: 'rgba(245, 158, 11, 0.5)' },
-                    action: { text: 'text-sky-100', bg: 'rgba(2, 132, 199, 0.5)', border: 'rgba(56, 189, 248, 0.5)' },
-                    plan: { text: 'text-emerald-300', bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.3)' },
-                    empty: { text: 'text-slate-400', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)' }
-                };
-
-                const cc = colColors[styleType] || colColors.empty;
-
-                // 動態設定樣式，並允許縮小比例以納入畫布
-                node.className = `tree-node ${cc.text} ${styleType === 'action' ? 'md:max-w-xs' : 'md:max-w-44'}`;
-
-                if (isGolden) {
-                    node.classList.add('border-amber-400', 'text-amber-300', 'shadow-lg', 'shadow-amber-500/20');
-                    node.style.background = 'rgba(245, 158, 11, 0.1)';
-                    node.style.borderColor = 'rgba(245, 158, 11, 0.5)';
-                } else {
-                    node.style.background = cc.bg;
-                    node.style.borderColor = cc.border;
-                }
-
-                if (styleType === 'empty') node.style.opacity = '0.5';
-
-                node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-75 mb-2 font-bold">${type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${label}</div>`;
-                return node;
-            };
-
-            // Append Global
-            if (globalStr.length > 0) row1.appendChild(createNode('tree-node-global', t('tree_system'), globalStr.join('<br>'), 'global', false, true));
-
-            // Append Inherit
+            // 繼承背景節點
             if (promptState.inherit.filled) {
-                row1.appendChild(createNode('tree-node-inherit', t('tree_context'), promptState.inherit.data.substring(0, 30) + '...', 'inherit', !!promptState.inherit.praise));
+                columns.inherit.push({ label: promptState.inherit.data.substring(0, 30) + '...', type: t('tree_context'), rainbow: !!promptState.inherit.praise });
             } else if (promptState.inherit.praise) {
-                row1.appendChild(createNode('tree-node-inherit', t('tree_context'), t('tree_context'), 'empty', true));
+                columns.inherit.push({ label: t('tree_context'), type: t('tree_context'), empty: true, rainbow: true });
             }
-
-            // Append Goal
             if (promptState.goal.filled) {
-                row1.appendChild(createNode('tree-node-goal', t('tree_target'), (promptState.goal.data ? promptState.goal.data.substring(0, 30) + '...' : t('tree_core_goal')), 'goal'));
+                if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
+                // 加入一個空的 Spacer，把它們推到第一列以下 (因為第0列要留給主線 Goal -> Next)
+                if (promptState.goal.kpis.length > 0 || promptState.next.kpiActions?.length > 0) {
+                    columns.kpis.push({ isSpacer: true, empty: true });
+                }
+                promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') }));
             }
+            if (promptState.next.filled) columns.next.push({ label: promptState.next.data ? promptState.next.data.substring(0, 30) + '...' : t('tree_action'), type: t('tree_action') });
 
-            // Append Action
-            if (promptState.next.filled) {
-                row1.appendChild(createNode('tree-node-next-main', t('tree_action'), (promptState.next.data ? promptState.next.data.substring(0, 30) + '...' : t('tree_action')), 'action'));
-            }
-
-            mainContainer.appendChild(row1);
-
-            // 2. Build Row 2 (Branches)
+            // KPI 行動 sub-nodes
             const validKPIs = promptState.goal.kpis.filter(k => k.trim() !== '');
             const validActions = promptState.next.kpiActions || [];
+            validActions.forEach((action, i) => {
+                if (action && action.trim() !== '' && i < validKPIs.length) {
+                    columns.next.push({ label: action.substring(0, 25) + '...', type: `${t('tree_kpi_action')} ${i + 1}`, kpiAction: true });
+                }
+            });
 
-            if (validKPIs.length > 0) {
-                const row2 = document.createElement('div');
-                row2.className = "flex flex-row items-start justify-center gap-8 md:gap-16 w-full flex-wrap xl:flex-nowrap mt-4";
+            // 繪製節點 DOM
+            let colIndex = 0;
+            Object.keys(columns).forEach(colKey => {
+                if (columns[colKey].length > 0) {
+                    const colDiv = document.createElement('div');
+                    colDiv.className = "flex flex-col gap-6 items-center flex-1 z-10 min-w-[120px]";
+                    colDiv.id = `tree-col-${colKey}`;
 
-                validKPIs.forEach((kpiContent, i) => {
-                    const branchCol = document.createElement('div');
-                    branchCol.className = "flex flex-col items-center gap-12 shrink-0"; // Stack vertically
+                    columns[colKey].forEach((s, i) => {
+                        const node = document.createElement('div');
+                        node.id = `tree-node-${colKey}-${i}`;
+                        const isMain = s.type === 'Target' || s.highlight;
+                        const isGolden = s.golden;
+                        const isRainbow = s.rainbow;
+                        const isEmpty = s.empty;
+                        const isKpiAction = s.kpiAction;
 
-                    branchCol.appendChild(createNode(`tree-node-kpi-${i}`, t('tree_constraint'), kpiContent.substring(0, 25), 'constraint'));
+                        const isSpacer = s.isSpacer;
 
-                    if (validActions[i] && validActions[i].trim() !== '') {
-                        branchCol.appendChild(createNode(`tree-node-plan-${i}`, `${t('tree_kpi_action')} ${i + 1}`, validActions[i].substring(0, 25) + '...', 'plan'));
-                    }
+                        if (isSpacer) {
+                            node.className = "w-full pointer-events-none";
+                            // height matches roughly standard node + gap
+                            node.style.minHeight = "72px";
+                            node.style.opacity = "0";
+                            colDiv.appendChild(node);
+                            return; // 提早結束 spacer 的繪製
+                        }
 
-                    row2.appendChild(branchCol);
-                });
-                mainContainer.appendChild(row2);
-            }
+                        // 各欄位專屬配色
+                        const colColors = {
+                            global: { text: 'text-slate-100', bg: 'rgba(71, 85, 105, 0.5)', border: 'rgba(148, 163, 184, 0.5)' },
+                            inherit: { text: 'text-indigo-100', bg: 'rgba(79, 70, 229, 0.5)', border: 'rgba(129, 140, 248, 0.5)' },
+                            goal: { text: 'text-rose-100', bg: 'rgba(225, 29, 72, 0.5)', border: 'rgba(251, 113, 133, 0.5)' },
+                            kpis: { text: 'text-amber-100', bg: 'rgba(217, 119, 6, 0.5)', border: 'rgba(245, 158, 11, 0.5)' },
+                            next: { text: 'text-sky-100', bg: 'rgba(2, 132, 199, 0.5)', border: 'rgba(56, 189, 248, 0.5)' }
+                        };
+                        const cc = colColors[colKey] || colColors.next;
 
-            container.appendChild(mainContainer);
+                        if (isGolden) {
+                            node.className = 'tree-node border-amber-400 text-amber-300 shadow-lg shadow-amber-500/20';
+                            node.style.background = 'rgba(245, 158, 11, 0.1)';
+                            node.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                        } else if (isKpiAction) {
+                            node.className = 'tree-node text-emerald-300';
+                            node.style.background = 'rgba(16, 185, 129, 0.08)';
+                            node.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        } else if (isEmpty) {
+                            node.className = `tree-node ${cc.text}`;
+                            node.style.opacity = '0.5';
+                            node.style.background = cc.bg;
+                            node.style.borderColor = cc.border;
+                        } else {
+                            node.className = `tree-node ${cc.text}`;
+                            node.style.background = cc.bg;
+                            node.style.borderColor = cc.border;
+                        }
+                        node.innerHTML = `<div class="text-[9px] uppercase tracking-widest opacity-75 mb-2 font-bold">${s.type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${s.label || t('tree_core_goal')}</div>`;
+                        colDiv.appendChild(node);
+                    });
+                    container.appendChild(colDiv);
+                }
+            });
 
-            // 延遲繪製連線確保 DOM 尺寸已計算 (並清空前一次Timeout防止疊圖)
-            if (window._svgDrawTimeout) clearTimeout(window._svgDrawTimeout);
-            window._svgDrawTimeout = setTimeout(() => {
-                // 強制再清空一次 SVG
-                svg.innerHTML = "";
-
-                // options: { isDash, weightText, anchorStart: 'right'|'bottom', anchorEnd: 'left'|'top', reverseAnim: false }
+            // 延遲繪製連線確保 DOM 尺寸已計算
+            // 延遲繪製連線確保 DOM 尺寸已計算
+            setTimeout(() => {
+                // options: { isDash, weightText, anchorStart: 'right'|'bottom', anchorEnd: 'left', reverseAnim: false }
                 const drawLine = (id1, id2, options = {}) => {
                     const el1 = document.getElementById(id1), el2 = document.getElementById(id2);
                     if (!el1 || !el2 || el1.style.opacity === "0" || el2.style.opacity === "0") return;
@@ -1837,10 +1841,7 @@
 
                     // 決定終點位置
                     let x2, y2;
-                    if (anchorEnd === 'top') {
-                        x2 = rect2.left + (rect2.width / 2) - svgRect.left;
-                        y2 = rect2.top - svgRect.top;
-                    } else if (anchorEnd === 'left') {
+                    if (anchorEnd === 'left') {
                         x2 = rect2.left - svgRect.left;
                         y2 = rect2.top + (rect2.height / 2) - svgRect.top;
                     } else {
@@ -1849,7 +1850,6 @@
                     }
 
                     const isHorizontal = Math.abs(y1 - y2) < 2 && anchorStart === 'right' && anchorEnd === 'left';
-                    const isVertical = Math.abs(x1 - x2) < 2 && anchorStart === 'bottom' && anchorEnd === 'top';
 
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     let d = "";
@@ -1861,24 +1861,15 @@
                         d = `M ${x1} ${y1} L ${x2} ${y2}`;
                         midX = x1 + (x2 - x1) / 2;
                         midY = y1;
-                    } else if (isVertical) {
-                        d = `M ${x1} ${y1} L ${x2} ${y2}`;
-                        midX = x1;
-                        midY = y1 + (y2 - y1) / 2;
                     } else {
-                        if (anchorStart === 'bottom' && anchorEnd === 'top') {
-                            // 從底部出來，完美往下連接頂部的貝茲 (同 Column 不會觸發這段, 但跨 Col斜接會)
+                        if (anchorStart === 'bottom') {
+                            // 從底部出來，往下走一段再轉向右
                             cp1x = x1;
                             cp1y = y1 + Math.abs(y2 - y1) / 2;
-                            cp2x = x2;
-                            cp2y = cp1y;
-                        } else if (anchorStart === 'bottom' && anchorEnd === 'left') {
-                            cp1x = x1;
-                            cp1y = y1 + Math.abs(y2 - y1) / 2;
-                            cp2x = x2 - 40;
+                            cp2x = x2 - 40; // 靠近終點左側
                             cp2y = y2;
                         } else {
-                            // 從右方出來往下接等
+                            // 從右側出來，往右走一段再轉向
                             cp1x = x1 + (x2 - x1) / 2;
                             cp1y = y1;
                             cp2x = cp1x;
@@ -1933,46 +1924,64 @@
                 };
 
                 // 連線邏輯
+                const goldLine = (id1, id2, weight) => drawLine(id1, id2, true, weight);
 
-                // 1. global -> inherit / goal
-                if (document.getElementById('tree-node-global')) {
-                    if (document.getElementById('tree-node-inherit')) drawLine('tree-node-global', 'tree-node-inherit', { isDash: true, weightText: '100%' });
-                    else if (document.getElementById('tree-node-goal')) drawLine('tree-node-global', 'tree-node-goal', { isDash: true, weightText: '100%' });
+                // global → inherit / goal
+                if (columns.global.length > 0) {
+                    let globalOutCount = (columns.inherit.length > 0 ? 1 : 0) + (columns.goal.length > 0 && columns.inherit.length === 0 ? 1 : 0);
+                    const weight = globalOutCount > 0 ? `${Math.round(100 / globalOutCount)}%` : '';
+                    if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', { isDash: true, weightText: weight });
+                    else if (columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', { isDash: true, weightText: weight });
                 }
 
-                // 2. inherit -> goal
-                if (document.getElementById('tree-node-inherit') && document.getElementById('tree-node-goal')) {
-                    drawLine('tree-node-inherit', 'tree-node-goal', { weightText: '100%' });
+                // inherit → goal (主線)
+                if (columns.inherit.length > 0 && columns.goal.length > 0) {
+                    drawLine('tree-node-inherit-0', 'tree-node-goal-0', { weightText: '100%' });
                 }
 
-                // 3. goal -> action (Main horizontal line)
-                if (document.getElementById('tree-node-goal') && document.getElementById('tree-node-next-main')) {
-                    drawLine('tree-node-goal', 'tree-node-next-main', { weightText: '100%', reverseAnim: true });
+                // goal and next and kpis
+                if (columns.goal.length > 0) {
+                    const realKpis = columns.kpis.filter(k => !k.isSpacer);
+
+                    // 1. Goal (Right) -> Action (Left) 主線 (逆向流動：Action 影響 Goal)
+                    if (columns.next.length > 0) {
+                        // Action 作為全局影響，流動方向反轉從 Action 至 Goal
+                        // 視覺上仍是 Goal 畫線到 Action，但動畫反向
+                        drawLine('tree-node-goal-0', 'tree-node-next-0', { weightText: '100%', reverseAnim: true });
+                    }
+
+                    // 2. Goal (Bottom) -> Constraints (Left) 支線
+                    if (realKpis.length > 0) {
+                        const bottomWeight = `${Math.round(100 / realKpis.length)}%`;
+                        columns.kpis.forEach((k, i) => {
+                            if (!k.isSpacer) {
+                                drawLine('tree-node-goal-0', `tree-node-kpis-${i}`, {
+                                    isDash: true,
+                                    weightText: bottomWeight,
+                                    anchorStart: 'bottom',
+                                    anchorEnd: 'left'
+                                });
+                            }
+                        });
+                    }
                 }
 
-                // 4. inherit -> action (if no goal)
-                if (document.getElementById('tree-node-inherit') && !document.getElementById('tree-node-goal') && document.getElementById('tree-node-next-main')) {
-                    drawLine('tree-node-inherit', 'tree-node-next-main', { weightText: '100%', reverseAnim: true });
-                }
-
-                // 5. goal -> constraints (Vertical / Bottom to Top)
-                if (document.getElementById('tree-node-goal') && validKPIs.length > 0) {
-                    const weight = `${Math.round(100 / validKPIs.length)}%`;
-                    validKPIs.forEach((_, i) => {
-                        if (document.getElementById(`tree-node-kpi-${i}`)) {
-                            drawLine('tree-node-goal', `tree-node-kpi-${i}`, { isDash: true, weightText: weight, anchorStart: 'bottom', anchorEnd: 'top' });
+                // kpis → next (kpi-actions only)
+                if (columns.kpis.length > 0 && columns.next.length > 0) {
+                    // KPI 對應到具體的 Plan
+                    // kpis[1] 對應 next[1], kpis[2] 對應 next[2]
+                    columns.kpis.forEach((k, i) => {
+                        if (!k.isSpacer && i < columns.next.length && columns.next[i].kpiAction) {
+                            drawLine(`tree-node-kpis-${i}`, `tree-node-next-${i}`, { weightText: '100%' });
                         }
                     });
                 }
 
-                // 6. constraint -> plan (Vertical / Bottom to Top)
-                validKPIs.forEach((_, i) => {
-                    if (document.getElementById(`tree-node-kpi-${i}`) && document.getElementById(`tree-node-plan-${i}`)) {
-                        drawLine(`tree-node-kpi-${i}`, `tree-node-plan-${i}`, { weightText: '100%', anchorStart: 'bottom', anchorEnd: 'top' });
-                    }
-                });
-
-            }, 100);
+                // inherit → next (skip goal)
+                if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0) {
+                    drawLine('tree-node-inherit-0', 'tree-node-next-0', { weightText: '100%', reverseAnim: true });
+                }
+            }, 150);
         }
 
         // 核心 Prompt 組合邏輯
