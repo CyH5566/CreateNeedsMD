@@ -1734,6 +1734,10 @@
             }
             if (promptState.goal.filled) {
                 if (promptState.goal.data) columns.goal.push({ label: promptState.goal.data.substring(0, 30) + '...', type: t('tree_target') });
+                // 加入一個空的 Spacer，把它們推到第一列以下 (因為第0列要留給主線 Goal -> Next)
+                if (promptState.goal.kpis.length > 0 || promptState.next.kpiActions?.length > 0) {
+                    columns.kpis.push({ isSpacer: true, empty: true });
+                }
                 promptState.goal.kpis.forEach(k => columns.kpis.push({ label: k.substring(0, 25), type: t('tree_constraint') }));
             }
             if (promptState.next.filled) columns.next.push({ label: promptState.next.data ? promptState.next.data.substring(0, 30) + '...' : t('tree_action'), type: t('tree_action') });
@@ -1764,19 +1768,15 @@
                         const isEmpty = s.empty;
                         const isKpiAction = s.kpiAction;
 
-                        if (colKey === 'next' && i === 0 && columns[colKey].length > 1) {
-                            // Add invisible spacer matching all sub-nodes to perfectly center tree-node-next-0
-                            const spacer = document.createElement('div');
-                            spacer.className = "flex flex-col gap-6 w-full opacity-0 pointer-events-none";
-                            // height 0 allows the flex container to balance them equally? 
-                            // Actually, just rendering the exact same nodes makes the top identical in height to the bottom.
-                            for (let j = 1; j < columns[colKey].length; j++) {
-                                const dummy = document.createElement('div');
-                                dummy.className = "tree-node";
-                                dummy.innerHTML = `<div class="text-[9px] uppercase tracking-widest mb-2 font-bold">${columns[colKey][j].type}</div><div class="text-xs font-bold leading-relaxed line-clamp-3">${columns[colKey][j].label}</div>`;
-                                spacer.appendChild(dummy);
-                            }
-                            colDiv.appendChild(spacer);
+                        const isSpacer = s.isSpacer;
+
+                        if (isSpacer) {
+                            node.className = "w-full pointer-events-none";
+                            // height matches roughly standard node + gap
+                            node.style.minHeight = "72px";
+                            node.style.opacity = "0";
+                            colDiv.appendChild(node);
+                            return; // 提早結束 spacer 的繪製
                         }
 
                         // 各欄位專屬配色
@@ -1816,9 +1816,9 @@
 
             // 延遲繪製連線確保 DOM 尺寸已計算
             setTimeout(() => {
-                const drawLine = (id1, id2, isDash = false) => {
+                const drawLine = (id1, id2, isDash = false, weightText = null) => {
                     const el1 = document.getElementById(id1), el2 = document.getElementById(id2);
-                    if (!el1 || !el2) return;
+                    if (!el1 || !el2 || el1.style.opacity === "0" || el2.style.opacity === "0") return;
 
                     // 相對 svg 容器的座標計算
                     const svgRect = svg.getBoundingClientRect();
@@ -1835,19 +1835,19 @@
 
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     let d = "";
+                    const cp1x = x1 + (x2 - x1) / 2;
                     if (isHorizontal) {
                         d = `M ${x1} ${y1} L ${x2} ${y2}`;
                     } else {
-                        const cp1x = x1 + (x2 - x1) / 2;
                         d = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp1x} ${y2}, ${x2} ${y2}`;
                     }
                     path.setAttribute("d", d);
-                    path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.5)" : "rgba(59, 130, 246, 0.5)");
+                    path.setAttribute("stroke", isDash ? "rgba(234, 179, 8, 0.4)" : "rgba(59, 130, 246, 0.4)");
                     path.setAttribute("stroke-width", "2");
                     path.setAttribute("fill", "none");
                     path.setAttribute("stroke-linecap", "round");
 
-                    // 流動虛線動畫
+                    // 標三重虛線動畫
                     path.setAttribute("stroke-dasharray", "8,6");
                     const animDur = isDash ? "1.5s" : "2.5s";
                     const animate = document.createElementNS("http://www.w3.org/2000/svg", "animate");
@@ -1859,43 +1859,71 @@
                     path.appendChild(animate);
 
                     svg.appendChild(path);
+
+                    if (weightText) {
+                        const midX = cp1x;
+                        const midY = y1 + (y2 - y1) / 2 - 6; // 稍微在線上偏上一點
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", midX);
+                        text.setAttribute("y", midY);
+                        text.setAttribute("fill", isDash ? "rgba(234, 179, 8, 0.9)" : "rgba(147, 197, 253, 0.9)");
+                        text.setAttribute("font-size", "10");
+                        text.setAttribute("font-weight", "bold");
+                        text.setAttribute("text-anchor", "middle");
+                        text.setAttribute("class", "tracking-wider font-mono");
+                        text.textContent = weightText;
+                        svg.appendChild(text);
+                    }
                 };
 
                 // 連線邏輯
-                const goldLine = (id1, id2) => drawLine(id1, id2, true);
+                const goldLine = (id1, id2, weight) => drawLine(id1, id2, true, weight);
 
                 // global → inherit / goal
                 if (columns.global.length > 0) {
-                    if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true);
-                    else if (columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true);
+                    let globalOutCount = (columns.inherit.length > 0 ? 1 : 0) + (columns.goal.length > 0 && columns.inherit.length === 0 ? 1 : 0);
+                    const weight = globalOutCount > 0 ? `${Math.round(100 / globalOutCount)}%` : '';
+                    if (columns.inherit.length > 0) drawLine('tree-node-global-0', 'tree-node-inherit-0', true, weight);
+                    else if (columns.goal.length > 0) drawLine('tree-node-global-0', 'tree-node-goal-0', true, weight);
                 }
 
-                // inherit → goal
-                if (columns.inherit.length > 0 && columns.goal.length > 0) drawLine('tree-node-inherit-0', 'tree-node-goal-0');
+                // inherit → goal (主線)
+                if (columns.inherit.length > 0 && columns.goal.length > 0) {
+                    drawLine('tree-node-inherit-0', 'tree-node-goal-0', false, '100%');
+                }
 
                 // goal → kpis and next
                 if (columns.goal.length > 0) {
-                    // 目標直接連接到主行動 (保持水平主線)
-                    if (columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0');
+                    let branches = 0;
+                    if (columns.next.length > 0) branches++; // 主線 Action
+                    const realKpis = columns.kpis.filter(k => !k.isSpacer);
+                    branches += realKpis.length; // 支線 Constraints
 
-                    // 目標發散到所有 KPI 限制
-                    columns.kpis.forEach((_, i) => drawLine('tree-node-goal-0', `tree-node-kpis-${i}`));
+                    const weight = branches > 0 ? `${Math.round(100 / branches)}%` : null;
+
+                    // 目標直接連接到主行動 (保持水平主線)
+                    if (columns.next.length > 0) drawLine('tree-node-goal-0', 'tree-node-next-0', false, weight);
+
+                    // 目標發散到所有實際 KPI 限制
+                    columns.kpis.forEach((k, i) => {
+                        if (!k.isSpacer) drawLine('tree-node-goal-0', `tree-node-kpis-${i}`, true, weight);
+                    });
                 }
 
                 // kpis → next (kpi-actions only)
                 if (columns.kpis.length > 0 && columns.next.length > 0) {
-                    // 取消 KPI -> Main Action 的多重連線，改為只讓 KPI 對應到具體的 Plan
-                    columns.next.forEach((n, ni) => {
-                        if (n.kpiAction && ni > 0) {
-                            const kpiIdx = ni - 1;
-                            if (kpiIdx < columns.kpis.length) drawLine(`tree-node-kpis-${kpiIdx}`, `tree-node-next-${ni}`);
+                    // KPI 對應到具體的 Plan
+                    // kpis[1] 對應 next[1], kpis[2] 對應 next[2] （因為 kpis[0] 是 spacer，next[0] 是 Main）
+                    columns.kpis.forEach((k, i) => {
+                        if (!k.isSpacer && i < columns.next.length && columns.next[i].kpiAction) {
+                            drawLine(`tree-node-kpis-${i}`, `tree-node-next-${i}`, false, '100%');
                         }
                     });
                 }
 
                 // inherit → next (skip goal)
                 if (columns.inherit.length > 0 && columns.goal.length === 0 && columns.next.length > 0) {
-                    drawLine('tree-node-inherit-0', 'tree-node-next-0');
+                    drawLine('tree-node-inherit-0', 'tree-node-next-0', false, '100%');
                 }
             }, 150);
         }
